@@ -15,6 +15,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Sidebar } from "./Sidebar"
+import Image from "next/image"
 
 export function Navbar() {
   const pathname = usePathname()
@@ -53,9 +54,9 @@ export function Navbar() {
 
           <Link 
             href={isAuthenticated ? "/dashboard" : "/"} 
-            className="inline-flex items-center gap-2 text-base font-semibold text-slate-950 transition-colors duration-300 dark:text-slate-50"
+            className="inline-flex items-center gap-0.5 text-base font-semibold text-slate-950 transition-colors duration-300 dark:text-slate-50"
           >
-            <SparklesIcon className="size-5 text-cyan-500" />
+            <Image src="/logo.png" alt="Flowlary" width={24} height={24} />
             <span>Flowlary</span>
           </Link>
         </div>
