@@ -15,7 +15,7 @@ export function Footer() {
       <div className="mx-auto grid max-w-7xl gap-10 px-6 text-slate-700 sm:grid-cols-3 sm:px-10 dark:text-slate-300">
         <div className="space-y-3">
           <div className="flex items-center gap-1">
-            <Image src="/logo.png" alt="Flowlary" width={24} height={24} />
+            <Image src="/logo.webp" alt="Flowlary" width={24} height={24} />
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-500 dark:text-cyan-300">Flowlary</p>
           </div>
           <p className="max-w-sm text-sm leading-6 text-slate-600 dark:text-slate-400">
