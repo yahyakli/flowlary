@@ -1,7 +1,13 @@
 import type { NextAuthConfig } from "next-auth";
+import Google from "next-auth/providers/google";
 
 export const authConfig = {
-  providers: [], // Providers are added in auth.ts to avoid Edge Runtime issues
+  providers: [
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
+    }),
+  ],
   session: {
     strategy: "jwt",
   },
