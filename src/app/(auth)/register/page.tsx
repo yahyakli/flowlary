@@ -101,7 +101,7 @@ export default function RegisterPage() {
                   type="button"
                   onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
                   variant="outline"
-                  className="w-full rounded-full border-slate-200/80 bg-white px-6 py-4 text-base font-semibold text-slate-950 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+                  className="w-full rounded-full border-slate-200/80 bg-white px-6 py-6 text-base font-semibold text-slate-950 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
                 >
                   <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24">
                     <path

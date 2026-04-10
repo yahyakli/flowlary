@@ -1,63 +1,76 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LogOut, SparklesIcon } from "lucide-react"
+import { LogOut, SparklesIcon, Menu } from "lucide-react"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { useSession, signOut } from "next-auth/react"
-
-const authNavItems = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/expenses", label: "Expenses" },
-  { href: "/goals", label: "Goals" },
-  { href: "/history", label: "History" },
-  { href: "/settings", label: "Settings" },
-]
+import { Button } from "@/components/ui/button"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { Sidebar } from "./Sidebar"
 
 export function Navbar() {
   const pathname = usePathname()
   const { data: session, status } = useSession()
   const isAuthenticated = status === "authenticated"
+  const [isOpen, setIsOpen] = useState(false)
+
+  // Close sidebar on navigation
+  useEffect(() => {
+    setIsOpen(false)
+  }, [pathname])
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/10 bg-white/80 py-4 backdrop-blur-xl transition-colors duration-300 dark:border-slate-900/20 dark:bg-slate-950/80">
+    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 py-4 backdrop-blur-xl transition-all duration-300 shadow-sm shadow-slate-950/5 dark:border-white/10 dark:bg-slate-950/90 dark:shadow-2xl dark:shadow-slate-950/50">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 sm:px-10">
-        <Link href="/" className="inline-flex items-center gap-2 text-base font-semibold text-slate-950 transition-colors duration-300 dark:text-slate-50">
-          <SparklesIcon className="size-5 text-cyan-500" />
-          <span>Flowlary</span>
-        </Link>
+        <div className="flex items-center gap-4">
+          {isAuthenticated && (
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="lg:hidden rounded-xl">
+                  <Menu className="size-5" />
+                  <span className="sr-only">Toggle navigation</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-72 p-6 dark:bg-slate-950 border-r-slate-200/10 dark:border-white/5">
+                <SheetHeader className="mb-8 items-start px-2">
+                  <SheetTitle className="flex items-center gap-2 text-xl font-bold">
+                    <SparklesIcon className="size-6 text-cyan-500" />
+                    Flowlary
+                  </SheetTitle>
+                </SheetHeader>
+                <Sidebar onItemClick={() => setIsOpen(false)} />
+              </SheetContent>
+            </Sheet>
+          )}
 
-        <nav className="hidden items-center gap-1 md:flex">
-          {isAuthenticated
-            ? authNavItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                    pathname === item.href
-                      ? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-300"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))
-            : null}
-        </nav>
+          <Link 
+            href={isAuthenticated ? "/dashboard" : "/"} 
+            className="inline-flex items-center gap-2 text-base font-semibold text-slate-950 transition-colors duration-300 dark:text-slate-50"
+          >
+            <SparklesIcon className="size-5 text-cyan-500" />
+            <span>Flowlary</span>
+          </Link>
+        </div>
 
         <div className="flex items-center gap-3">
           <ThemeToggle />
           {isAuthenticated ? (
-            <>
-              <button
-                type="button"
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-slate-950/5 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900/90 dark:text-slate-100 dark:hover:bg-slate-800"
-              >
-                <LogOut className="size-4" />
-                Sign out
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-slate-950/5 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900/90 dark:text-slate-100 dark:hover:bg-slate-800"
+            >
+              <LogOut className="size-4" />
+              <span className="hidden sm:inline">Sign out</span>
+            </button>
           ) : (
             <>
               <Link

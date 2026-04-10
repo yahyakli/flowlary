@@ -10,7 +10,7 @@ const footerLinks = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-slate-200/10 bg-slate-50/90 py-12 backdrop-blur-xl transition-colors duration-300 dark:border-slate-900/20 dark:bg-slate-950/80">
+    <footer className="border-t border-slate-200 bg-slate-100/50 py-12 backdrop-blur-xl transition-colors duration-300 dark:border-white/5 dark:bg-[#020617]">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 text-slate-700 sm:grid-cols-3 sm:px-10 dark:text-slate-300">
         <div className="space-y-3">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-500 dark:text-cyan-300">Flowlary</p>
