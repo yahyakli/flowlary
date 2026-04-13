@@ -63,7 +63,7 @@ export default async function Home() {
         <div className="absolute -bottom-[10%] -right-[5%] h-[45%] w-[45%] rounded-full bg-orange-500/10 blur-[120px] dark:bg-orange-400/5" />
       </div>
 
-      <div className="relative mx-auto max-w-7xl px-6 py-24 sm:px-10">
+      <div className="relative mx-auto w-[90%] max-w-[1600px] px-6 py-24 sm:px-10">
         <section className="flex flex-col items-center text-center">
           <div className="animate-in fade-in slide-in-from-top-4 duration-1000">
             <span className="inline-flex items-center gap-2 rounded-full bg-cyan-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-cyan-600 ring-1 ring-inset ring-cyan-500/20 dark:text-cyan-400">
