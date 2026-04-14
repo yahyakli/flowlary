@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       name,
       email: email.toLowerCase(),
       passwordHash,
-      currency: "USD",
+      currency: "MAD",
       locale: "en-US",
     });
 

@@ -147,7 +147,7 @@ export const mockSummary = {
   savingsContributions: 850,
   debtPayments: 630,
   remaining: 670,
-  currency: 'USD',
+  currency: 'MAD',
 };
 
 // Mock health metrics
@@ -177,7 +177,7 @@ export function monthsToGoal(goal: SavingsGoal): number {
 }
 
 // Format currency
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
+export function formatCurrency(amount: number, currency: string = 'MAD'): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,

@@ -88,9 +88,11 @@ export default function DashboardPage() {
           <RecentTransactions transactions={mockRecentTransactions} />
         </div>
 
-        {/* AI Insights - 1/3 width */}
+        {/* AI Insights - 1/3 width, fixed/sticky */}
         <div className="xl:col-span-1">
-          <AIInsightCard />
+          <div className="sticky top-8">
+            <AIInsightCard />
+          </div>
         </div>
       </div>
 
