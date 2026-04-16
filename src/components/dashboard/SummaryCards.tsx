@@ -23,7 +23,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
       description: "Take-home pay this period",
       icon: Wallet,
       color: "cyan",
-      trend: "+2.5% from last month",
+      trend: "2.5% from last month",
       trendDirection: "up" as const,
     },
     {
