@@ -54,7 +54,7 @@ export default async function Home() {
     redirect("/dashboard");
   }
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-50 selection:bg-cyan-500/30 dark:bg-slate-950">
+    <main className="relative min-h-screen overflow-x-hidden bg-slate-50 selection:bg-cyan-500/30 dark:bg-slate-950">
       {/* Dynamic Background Orbs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-[10%] -left-[10%] h-[50%] w-[50%] rounded-full bg-cyan-500/10 blur-[120px] dark:bg-cyan-400/5" />

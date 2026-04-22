@@ -47,7 +47,7 @@ export default function RootLayout({
       <body suppressHydrationWarning className="min-h-full bg-slate-50 text-slate-950 antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-50">
         <ThemeProviderWrapper>
           <SessionProvider>
-            <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-950 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-50">
+            <div className="relative min-h-screen overflow-x-hidden bg-slate-50 text-slate-950 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-50">
               <div className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[520px] -translate-x-1/2 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/15" />
               <div className="pointer-events-none absolute right-0 top-24 h-[360px] w-[360px] rounded-full bg-violet-500/15 blur-3xl dark:bg-violet-500/10" />
               <div className="pointer-events-none absolute left-10 bottom-10 h-[280px] w-[280px] rounded-full bg-fuchsia-500/10 blur-3xl dark:bg-fuchsia-500/10" />
