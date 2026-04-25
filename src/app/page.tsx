@@ -1,49 +1,45 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
+import { 
+  Banknote, 
+  Receipt, 
+  Target, 
+  Sparkles, 
+  ShieldCheck, 
+  Globe 
+} from "lucide-react";
 
 const features = [
   {
     title: "Salary Management",
     description: "Built for your actual pay cycle, whether it's monthly, bi-weekly, or custom.",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-500"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10"/><path d="M6 15h.01"/><path d="M10 15h.01"/></svg>
-    )
+    icon: <Banknote className="size-6 text-cyan-500" />
   },
   {
     title: "Expense Control",
     description: "Categorize fixed bills and track variable daily spending with ease.",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M12 2v20"/><path d="m17 5-5-3-5 3"/><path d="m17 19-5 3-5-3"/><path d="M22 12H2"/></svg>
-    )
+    icon: <Receipt className="size-6 text-emerald-500" />
   },
   {
     title: "Savings Goals",
     description: "Visualize your progress toward big dreams with multi-objective tracking.",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-500"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-    )
+    icon: <Target className="size-6 text-violet-500" />
   },
   {
     title: "AI Financial Health",
     description: "Get a 0-100 health score and smart insights powered by advanced AI.",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-    )
+    icon: <Sparkles className="size-6 text-amber-500" />
   },
   {
     title: "Privacy First",
     description: "No bank account linking required. Your data remains fully under your control.",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
-    )
+    icon: <ShieldCheck className="size-6 text-blue-500" />
   },
   {
     title: "Currency Flex",
     description: "Manage finances in any currency with localized formatting for global use.",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-500"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12"/><path d="M12 2a15.3 15.3 0 0 1 0 20"/><path d="M12 2a15.3 15.3 0 0 0 0 20"/></svg>
-    )
+    icon: <Globe className="size-6 text-pink-500" />
   },
 ];
 
