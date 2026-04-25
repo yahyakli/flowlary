@@ -7,6 +7,8 @@ import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { SavingsGoalsProgress } from "@/components/dashboard/SavingsGoalsProgress";
 import { AIInsightCard } from "@/components/dashboard/AIInsightCard";
 import { BudgetOverview } from "@/components/dashboard/BudgetOverview";
+import { SetSalaryDialog } from "@/components/dashboard/SetSalaryDialog";
+import { AddIncomeDialog } from "@/components/dashboard/AddIncomeDialog";
 import {
   mockSummary,
   mockMonthlySpending,
@@ -15,7 +17,7 @@ import {
   mockRecentTransactions,
   mockSavingsGoals,
 } from "@/lib/mock-data";
-import { Plus, ArrowUpRight } from "lucide-react";
+import { Plus, ArrowUpRight, Coins } from "lucide-react";
 
 export default function DashboardPage() {
   return (
@@ -41,20 +43,21 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="grid w-full grid-cols-1 gap-4 sm:w-auto sm:grid-cols-3">
+            <SetSalaryDialog />
+            <AddIncomeDialog />
+            
             <Link
               href="/expenses"
-              className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-500 px-6 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-cyan-500/20 transition-all hover:scale-105 hover:bg-cyan-400 hover:shadow-cyan-400/30 active:scale-95"
+              className="group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white px-5 py-3 transition-all hover:border-emerald-500/50 hover:bg-emerald-50/50 dark:border-slate-800 dark:bg-slate-900/50 dark:hover:border-emerald-500/30 dark:hover:bg-emerald-900/20"
             >
-              <Plus className="size-4 transition-transform group-hover:rotate-90" />
-              Add Expense
-            </Link>
-            <Link
-              href="/history"
-              className="group inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-6 py-3.5 text-sm font-bold text-white backdrop-blur-sm transition-all hover:border-white/30 hover:bg-white/20 active:scale-95"
-            >
-              View History
-              <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 transition-colors group-hover:bg-emerald-500 group-hover:text-white dark:bg-emerald-500/10 dark:text-emerald-400">
+                <Plus className="size-5 transition-transform group-hover:rotate-90" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Spending</p>
+                <p className="text-sm font-black text-slate-900 dark:text-white">Add Expense</p>
+              </div>
             </Link>
           </div>
         </div>

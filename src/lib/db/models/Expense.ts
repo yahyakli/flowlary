@@ -4,7 +4,7 @@ import type { IExpense } from '../types';
 
 const expenseSchema = new Schema<IExpense>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    userId: { type: String, required: true },
     title: { type: String, required: true },
     amount: { type: Number, required: true },
     category: {
@@ -29,7 +29,12 @@ const expenseSchema = new Schema<IExpense>(
   }
 );
 
-const Expense: Model<IExpense> = models.Expense || mongoose.model<IExpense>('Expense', expenseSchema);
+// Delete the model if it exists to force a schema update (useful in dev mode)
+if (models.Expense) {
+  delete (mongoose as any).models.Expense;
+}
+
+const Expense: Model<IExpense> = mongoose.model<IExpense>('Expense', expenseSchema);
 
 export type { IExpense };
 export { ExpenseCategory, Expense };

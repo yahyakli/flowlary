@@ -3,7 +3,7 @@ import type { IGoal } from '../types';
 
 const goalSchema = new Schema<IGoal>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    userId: { type: String, required: true },
     title: { type: String, required: true },
     targetAmount: { type: Number, required: true },
     savedAmount: { type: Number, required: true, default: 0 },
@@ -18,7 +18,12 @@ const goalSchema = new Schema<IGoal>(
   }
 );
 
-const Goal: Model<IGoal> = models.Goal || mongoose.model<IGoal>('Goal', goalSchema);
+// Delete the model if it exists to force a schema update
+if (models.Goal) {
+  delete (mongoose as any).models.Goal;
+}
+
+const Goal: Model<IGoal> = mongoose.model<IGoal>('Goal', goalSchema);
 
 export type { IGoal };
 export { Goal };

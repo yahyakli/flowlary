@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db/mongoose";
-import { Salary } from "@/lib/db/models/Salary";
-import { salarySchema } from "@/lib/validations/salary.schema";
+import { Income } from "@/lib/db/models/Income";
+import { incomeSchema } from "@/lib/validations/income.schema";
 
 export async function GET() {
   try {
@@ -12,9 +12,9 @@ export async function GET() {
     }
 
     await connectDB();
-    const salary = await Salary.findOne({ userId: session.user.id }).sort({ createdAt: -1 }).lean();
+    const incomes = await Income.find({ userId: session.user.id }).sort({ date: -1 }).lean();
 
-    return NextResponse.json({ salary });
+    return NextResponse.json({ incomes });
   } catch (error) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
@@ -28,22 +28,16 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const validatedData = salarySchema.parse(body);
+    const validatedData = incomeSchema.parse(body);
 
     await connectDB();
     
-    // Update existing or create new
-    const salary = await Salary.findOneAndUpdate(
-      { userId: session.user.id },
-      { 
-        ...validatedData,
-        userId: session.user.id,
-        effectiveDate: new Date()
-      },
-      { upsert: true, new: true }
-    );
+    const income = await Income.create({
+      ...validatedData,
+      userId: session.user.id,
+    });
 
-    return NextResponse.json({ salary });
+    return NextResponse.json({ income });
   } catch (error: any) {
     if (error.name === "ZodError") {
       return NextResponse.json({ error: error.errors }, { status: 400 });

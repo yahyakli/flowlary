@@ -3,7 +3,7 @@ import type { IDebt } from '../types';
 
 const debtSchema = new Schema<IDebt>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    userId: { type: String, required: true },
     title: { type: String, required: true },
     totalAmount: { type: Number, required: true },
     remainingAmount: { type: Number, required: true },
@@ -18,7 +18,12 @@ const debtSchema = new Schema<IDebt>(
   }
 );
 
-const Debt: Model<IDebt> = models.Debt || mongoose.model<IDebt>('Debt', debtSchema);
+// Delete the model if it exists to force a schema update
+if (models.Debt) {
+  delete (mongoose as any).models.Debt;
+}
+
+const Debt: Model<IDebt> = mongoose.model<IDebt>('Debt', debtSchema);
 
 export type { IDebt };
 export { Debt };

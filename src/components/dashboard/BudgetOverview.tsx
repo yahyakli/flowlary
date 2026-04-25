@@ -26,7 +26,7 @@ export function BudgetOverview({ summary }: BudgetOverviewProps) {
         <div>
           <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Budget Overview</h3>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            How you're tracking this month
+            How you&apos;re tracking this month
           </p>
         </div>
         {isOverBudget ? (

@@ -4,49 +4,61 @@ import { Expense } from "@/lib/db/models/Expense";
 import { expenseSchema } from "@/lib/validations/expense.schema";
 import { NextResponse } from "next/server";
 
-export async function GET(req: Request) {
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const month = searchParams.get("month") ? parseInt(searchParams.get("month")!) : new Date().getMonth() + 1;
-    const year = searchParams.get("year") ? parseInt(searchParams.get("year")!) : new Date().getFullYear();
-
     await connectDB();
 
-    const expenses = await Expense.find({
+    const expense = await Expense.findOneAndDelete({
+      _id: id,
       userId: session.user.id,
-      month,
-      year,
-    }).sort({ createdAt: -1 }).lean();
+    });
 
-    return NextResponse.json(expenses);
+    if (!expense) {
+      return NextResponse.json({ error: "Expense not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "Expense deleted successfully" });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function POST(req: Request) {
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
-    const validatedData = expenseSchema.parse(body);
+    const validatedData = expenseSchema.partial().parse(body);
 
     await connectDB();
 
-    const expense = await Expense.create({
-      ...validatedData,
-      userId: session.user.id,
-    });
+    const expense = await Expense.findOneAndUpdate(
+      { _id: id, userId: session.user.id },
+      { $set: validatedData },
+      { new: true }
+    );
 
-    return NextResponse.json(expense, { status: 201 });
+    if (!expense) {
+      return NextResponse.json({ error: "Expense not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(expense);
   } catch (error: any) {
     if (error.name === "ZodError") {
       return NextResponse.json({ error: error.errors }, { status: 400 });

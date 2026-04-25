@@ -100,13 +100,13 @@ export default function GoalsPage() {
               <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950/50">
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Increase Velocity</p>
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                  By cutting your "Entertainment" budget by 50 MAD, you can reach your "Vacation" goal 2 months earlier.
+                  By cutting your &quot;Entertainment&quot; budget by 50 MAD, you can reach your &quot;Vacation&quot; goal 2 months earlier.
                 </p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950/50">
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">High Interest First</p>
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                  Focus on your "Emergency Fund" before increasing contributions to "New Laptop" for better stability.
+                  Focus on your &quot;Emergency Fund&quot; before increasing contributions to &quot;New Laptop&quot; for better stability.
                 </p>
               </div>
             </div>

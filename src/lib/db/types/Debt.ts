@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 export interface IDebt {
   _id: mongoose.Types.ObjectId;
-  userId: mongoose.Types.ObjectId;
+  userId: string;
   title: string;
   totalAmount: number;
   remainingAmount: number;

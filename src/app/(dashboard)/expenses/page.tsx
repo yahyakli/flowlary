@@ -1,35 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { BudgetDonut } from "@/components/dashboard/BudgetDonut";
-import {
-  mockRecentTransactions,
-  mockCategoryBreakdown,
-  formatCurrency,
-} from "@/lib/mock-data";
-import { Plus, Search, Filter, ArrowUpRight, ArrowDownRight, Receipt, Wallet } from "lucide-react";
+import { useExpenseStore } from "@/store/useExpenseStore";
+import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog";
+import { formatCurrency } from "@/lib/mock-data";
+import { Search, Filter, Receipt, Wallet, ArrowDownRight, Loader2 } from "lucide-react";
 
 export default function ExpensesPage() {
+  const { expenses, fetchExpenses, isLoading } = useExpenseStore();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredTransactions = mockRecentTransactions.filter(
-    (t) =>
-      t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
 
-  const totalExpenses = mockRecentTransactions
-    .filter((t) => t.amount < 0)
-    .reduce((acc, t) => acc + Math.abs(t.amount), 0);
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter(
+      (t) =>
+        t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.category.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [expenses, searchTerm]);
 
-  const fixedExpenses = mockRecentTransactions
-    .filter((t) => t.amount < 0 && t.type === "fixed")
-    .reduce((acc, t) => acc + Math.abs(t.amount), 0);
+  const totalExpenses = useMemo(() => 
+    expenses.reduce((acc, t) => acc + t.amount, 0),
+  [expenses]);
 
-  const variableExpenses = mockRecentTransactions
-    .filter((t) => t.amount < 0 && t.type === "variable")
-    .reduce((acc, t) => acc + Math.abs(t.amount), 0);
+  const fixedExpenses = useMemo(() => 
+    expenses
+      .filter((t) => t.type === "fixed")
+      .reduce((acc, t) => acc + t.amount, 0),
+  [expenses]);
+
+  const variableExpenses = useMemo(() => 
+    expenses
+      .filter((t) => t.type === "variable")
+      .reduce((acc, t) => acc + t.amount, 0),
+  [expenses]);
+
+  const categoryBreakdown = useMemo(() => {
+    const breakdown: Record<string, { amount: number; color: string }> = {};
+    const colors = [
+      '#06b6d4', '#10b981', '#8b5cf6', '#f59e0b', 
+      '#ec4899', '#f97316', '#3b82f6', '#64748b'
+    ];
+    
+    expenses.forEach((ex, i) => {
+      const cat = ex.category;
+      if (!breakdown[cat]) {
+        breakdown[cat] = { 
+          amount: 0, 
+          color: colors[Object.keys(breakdown).length % colors.length] 
+        };
+      }
+      breakdown[cat].amount += ex.amount;
+    });
+
+    return Object.entries(breakdown).map(([category, data]) => ({
+      category,
+      amount: data.amount,
+      color: data.color
+    }));
+  }, [expenses]);
 
   return (
     <section className="space-y-10">
@@ -53,10 +87,7 @@ export default function ExpensesPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <button className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-6 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-emerald-500/20 transition-all hover:scale-105 hover:bg-emerald-400 hover:shadow-emerald-400/30 active:scale-95">
-              <Plus className="size-4" />
-              Add Expense
-            </button>
+            <AddExpenseDialog />
           </div>
         </div>
       </div>
@@ -117,17 +148,25 @@ export default function ExpensesPage() {
             </div>
           </div>
 
-          <RecentTransactions transactions={filteredTransactions} />
+          {isLoading && expenses.length === 0 ? (
+            <div className="flex h-64 items-center justify-center rounded-[1.5rem] border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900/50">
+              <Loader2 className="size-8 animate-spin text-emerald-500" />
+            </div>
+          ) : (
+            <RecentTransactions transactions={filteredExpenses} />
+          )}
         </div>
 
         {/* Sidebar - 1/3 width */}
         <div className="space-y-8">
-          <BudgetDonut data={mockCategoryBreakdown} />
+          <BudgetDonut data={categoryBreakdown} />
 
           <div className="rounded-[1.5rem] border border-slate-300 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/50">
             <h4 className="font-bold text-slate-900 dark:text-slate-50">Smart Tip</h4>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-              Your "Food" spending is 15% higher than last month. Try to plan your meals to save around 200 MAD.
+              {expenses.length > 0 
+                ? "Keep tracking your expenses to get personalized AI insights on your spending habits."
+                : "Add your first expense to see how Flowlary's AI can help you save more!"}
             </p>
           </div>
         </div>

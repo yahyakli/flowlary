@@ -18,7 +18,7 @@ export enum ExpenseCategory {
 
 export interface IExpense {
   _id: mongoose.Types.ObjectId;
-  userId: mongoose.Types.ObjectId;
+  userId: string;
   title: string;
   amount: number;
   category: ExpenseCategory;

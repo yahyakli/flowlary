@@ -136,14 +136,14 @@ export default function DebtsPage() {
                 <div className="absolute left-[-4px] top-1.5 size-2 rounded-full bg-rose-500" />
                 <p className="text-sm font-bold text-slate-900 dark:text-slate-50">Step 1</p>
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                  Pay the minimum on "Car Loan" ({formatCurrency(280)}).
+                  Pay the minimum on &quot;Car Loan&quot; ({formatCurrency(280)}).
                 </p>
               </div>
               <div className="relative pl-6 before:absolute before:left-0 before:top-2 before:h-full before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
                 <div className="absolute left-[-4px] top-1.5 size-2 rounded-full bg-slate-400" />
                 <p className="text-sm font-bold text-slate-900 dark:text-slate-50">Step 2</p>
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                  Allocate all extra funds ({formatCurrency(500)}) to "Student Loan" due to higher interest.
+                  Allocate all extra funds ({formatCurrency(500)}) to &quot;Student Loan&quot; due to higher interest.
                 </p>
               </div>
             </div>
