@@ -2,6 +2,7 @@
 
 import { useExpenseStore } from "@/store/useExpenseStore";
 import { formatCurrency } from "@/lib/mock-data";
+import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog";
 import {
   Home,
   ShoppingCart,
@@ -21,6 +22,8 @@ import {
   Gamepad2,
   Package,
   Trash2,
+  Pencil,
+  FileText,
 } from "lucide-react";
 
 interface Transaction {
@@ -33,6 +36,12 @@ interface Transaction {
   createdAt?: Date | string;
   type: string;
   icon?: string;
+  month?: number;
+  year?: number;
+  isRecurring?: boolean;
+  tags?: string[];
+  note?: string;
+  dueDay?: number;
 }
 
 interface RecentTransactionsProps {
@@ -143,6 +152,12 @@ export function RecentTransactions({ transactions, showDelete = true }: RecentTr
                 <p className="text-xs text-slate-600 dark:text-slate-400 capitalize">
                   {dateStr} · {transaction.category.replace('_', ' ')}
                 </p>
+                {transaction.note && transaction.note.trim() !== '' && (
+                  <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] italic text-slate-400 dark:text-slate-500">
+                    <FileText className="size-3 shrink-0" />
+                    {transaction.note}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center gap-4">
@@ -165,16 +180,32 @@ export function RecentTransactions({ transactions, showDelete = true }: RecentTr
                 </div>
                 
                 {showDelete && id && (
-                  <button
-                    onClick={() => {
-                      if (confirm("Are you sure you want to delete this expense?")) {
-                        deleteExpense(id);
+                  <div className="flex items-center gap-1">
+                    <AddExpenseDialog 
+                      expense={transaction as any} 
+                      trigger={
+                        <button className="p-2 text-slate-400 hover:text-emerald-500 transition-colors">
+                          <Pencil className="size-4" />
+                        </button>
                       }
-                    }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-slate-400 hover:text-rose-500"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
+                    />
+                    <button
+                      onClick={() => {
+                        import("sonner").then(({ toast }) => {
+                          toast.warning("Delete this expense?", {
+                            description: "This action cannot be undone.",
+                            action: {
+                              label: "Delete",
+                              onClick: () => deleteExpense(id),
+                            },
+                          });
+                        });
+                      }}
+                      className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

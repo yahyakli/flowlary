@@ -36,12 +36,12 @@ export function BudgetDonut({ data }: BudgetDonutProps) {
                 cy="50%"
                 innerRadius={65}
                 outerRadius={95}
-                paddingAngle={5}
+                paddingAngle={1}
                 dataKey="amount"
                 nameKey="category"
                 strokeWidth={2}
                 stroke="transparent"
-                label={({ name }) => name}
+                label={({ name }) => name?.charAt(0).toUpperCase()}
                 labelLine={false}
               >
                 {data.map((entry, index) => (

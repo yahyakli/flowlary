@@ -142,9 +142,6 @@ export default function ExpensesPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <button className="flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
-                <Filter className="size-4" />
-              </button>
             </div>
           </div>
 

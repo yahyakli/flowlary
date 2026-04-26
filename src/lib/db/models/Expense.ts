@@ -29,12 +29,7 @@ const expenseSchema = new Schema<IExpense>(
   }
 );
 
-// Delete the model if it exists to force a schema update (useful in dev mode)
-if (models.Expense) {
-  delete (mongoose as any).models.Expense;
-}
-
-const Expense: Model<IExpense> = mongoose.model<IExpense>('Expense', expenseSchema);
+const Expense: Model<IExpense> = models.Expense || mongoose.model<IExpense>('Expense', expenseSchema);
 
 export type { IExpense };
 export { ExpenseCategory, Expense };

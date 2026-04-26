@@ -9,6 +9,7 @@ interface ExpenseState {
   error: string | null;
   fetchExpenses: (month?: number, year?: number) => Promise<void>;
   addExpense: (expense: ExpenseSchema) => Promise<void>;
+  updateExpense: (id: string, expense: Partial<ExpenseSchema>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
 }
 
@@ -55,6 +56,34 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
         isLoading: false,
       }));
       toast.success('Expense added successfully');
+    } catch (error: any) {
+      set({ error: error.message, isLoading: false });
+      toast.error(error.message);
+    }
+  },
+
+  updateExpense: async (id, expenseData) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await fetch(`/api/expenses/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(expenseData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update expense');
+      }
+
+      const updatedExpense = await response.json();
+      set((state) => ({
+        expenses: state.expenses.map((e) => 
+          e._id.toString() === id ? updatedExpense : e
+        ),
+        isLoading: false,
+      }));
+      toast.success('Expense updated successfully');
     } catch (error: any) {
       set({ error: error.message, isLoading: false });
       toast.error(error.message);

@@ -18,12 +18,27 @@ export default async function connectDB(): Promise<typeof mongoose> {
     );
   }
 
-  const promise = mongoose.connect(uri, {
-    bufferCommands: false,
-  });
+  // Check for common connection string issues
+  if (uri.includes('@') && uri.lastIndexOf('@') !== uri.indexOf('@', uri.indexOf('//') + 2)) {
+    // This is a rough check to see if there's more than one @, 
+    // which usually means one is in the password and not encoded.
+    console.warn('Warning: Your MONGODB_URI might contain unencoded special characters in the password.');
+  }
 
-  globalThis.mongoosePromise = promise;
-  cached = promise;
+  try {
+    const promise = mongoose.connect(uri, {
+      bufferCommands: false,
+    });
 
-  return promise;
+    globalThis.mongoosePromise = promise;
+    cached = promise;
+
+    return await promise;
+  } catch (error: any) {
+    console.error('MongoDB connection error:', error.message);
+    // Don't cache the failed promise
+    globalThis.mongoosePromise = undefined;
+    cached = undefined;
+    throw error;
+  }
 }
