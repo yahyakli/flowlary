@@ -11,11 +11,12 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Coins, Tag, Plus, Sparkles, TrendingUp, ArrowUp } from "lucide-react";
+import { Coins, Tag, Plus, Sparkles, TrendingUp, X } from "lucide-react";
 import { toast } from "sonner";
 
 export function AddIncomeDialog() {
@@ -73,10 +74,23 @@ export function AddIncomeDialog() {
           <Plus className="ml-auto size-4 text-slate-300 transition-transform group-hover:rotate-90 group-hover:text-amber-500" />
         </button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[480px] overflow-hidden rounded-[2.5rem] border-none bg-white p-0 shadow-2xl dark:bg-slate-950">
+      <DialogContent 
+        showCloseButton={false}
+        className="sm:max-w-[480px] overflow-hidden rounded-[2.5rem] border-none bg-white p-0 shadow-2xl dark:bg-slate-950"
+      >
+        <DialogClose asChild>
+          <button 
+            type="button"
+            className="absolute right-6 top-6 z-50 flex size-9 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-all hover:bg-white/30 hover:scale-110 active:scale-95"
+            aria-label="Close dialog"
+          >
+            <X className="size-5" />
+          </button>
+        </DialogClose>
+
         <div className="relative h-24 w-full bg-gradient-to-r from-amber-500 to-orange-500 p-8">
           <div className="absolute -right-4 -top-4 size-24 rounded-full bg-white/20 blur-xl" />
-          <TrendingUp className="absolute right-8 top-8 size-8 text-white/30" />
+          <TrendingUp className="absolute left-8 top-8 size-8 text-white/30" />
         </div>
         
         <div className="relative -mt-10 px-8">

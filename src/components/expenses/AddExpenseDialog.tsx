@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ import {
   FileText,
   ArrowRight,
   Pencil,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IExpense } from "@/lib/db/types";
@@ -166,13 +168,26 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
       <DialogTrigger asChild>
         {trigger || (
           <button className="group inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-bold text-white shadow-xl shadow-slate-950/10 transition-all hover:-translate-y-0.5 hover:bg-slate-900 active:translate-y-0 dark:bg-emerald-500 dark:text-slate-950 dark:hover:bg-emerald-400">
-            <Plus className="size-4 transition-transform group-hover:rotate-90" />
+            <Plus className="size-5 transition-transform group-hover:rotate-90" />
             Add Expense
           </button>
         )}
       </DialogTrigger>
 
-      <DialogContent className="gap-0 overflow-hidden rounded-[1.5rem] border-none bg-white p-0 shadow-2xl dark:bg-slate-950 sm:max-w-[420px]">
+      <DialogContent 
+        showCloseButton={false}
+        className="gap-0 overflow-hidden rounded-[1.5rem] border-none bg-white p-0 shadow-2xl dark:bg-slate-950 sm:max-w-[420px]"
+      >
+        <DialogClose asChild>
+          <button 
+            type="button"
+            className="absolute right-4 top-4 z-50 flex size-8 items-center justify-center rounded-full bg-slate-100/50 text-slate-500 backdrop-blur-md transition-all hover:bg-slate-200 hover:text-slate-900 active:scale-90 dark:bg-slate-800/50 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"
+            aria-label="Close dialog"
+          >
+            <X className="size-4" />
+          </button>
+        </DialogClose>
+
         {/* Animated accent strip */}
         <div className="relative h-1 w-full bg-slate-100 dark:bg-slate-900">
           <div 
@@ -192,9 +207,6 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
               <DialogTitle className="text-xl font-black leading-tight tracking-tight text-slate-900 dark:text-white">
                 {isEditMode ? "Update Expense" : "Record Expense"}
               </DialogTitle>
-            </div>
-            <div className="flex size-10 items-center justify-center rounded-xl bg-slate-50 text-slate-400 dark:bg-slate-900 dark:text-slate-500">
-              {isEditMode ? <Pencil className="size-5" /> : <Plus className="size-5" />}
             </div>
           </DialogHeader>
 
@@ -344,25 +356,27 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
             </div>
 
             {/* ── Submit Button ── */}
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="group relative h-13 w-full overflow-hidden rounded-xl bg-slate-950 px-6 py-3 text-sm font-black text-white shadow-2xl transition-all hover:scale-[1.01] hover:bg-slate-900 active:scale-[0.99] disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-slate-950/30 dark:border-t-slate-950" />
-                  <span>Processing...</span>
-                </div>
-              ) : (
-                <div className="flex w-full items-center justify-between">
-                  <span>{isEditMode ? "Save Changes" : "Record Transaction"}</span>
-                  <div className="flex size-7 items-center justify-center rounded-lg bg-white/10 transition-transform group-hover:translate-x-1 dark:bg-slate-950/5">
-                    <ArrowRight className="size-4" />
+            <div className="flex items-center gap-3">
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="group relative h-13 flex-[2] overflow-hidden rounded-xl bg-slate-950 px-6 py-3 text-sm font-black text-white shadow-2xl transition-all hover:scale-[1.01] hover:bg-slate-900 active:scale-[0.99] disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-slate-950/30 dark:border-t-slate-950" />
+                    <span>Processing...</span>
                   </div>
-                </div>
-              )}
-            </Button>
+                ) : (
+                  <div className="flex w-full items-center justify-between">
+                    <span>{isEditMode ? "Save" : "Record"}</span>
+                    <div className="flex size-7 items-center justify-center rounded-lg bg-white/10 transition-transform group-hover:translate-x-1 dark:bg-slate-950/5">
+                      <ArrowRight className="size-4" />
+                    </div>
+                  </div>
+                )}
+              </Button>
+            </div>
           </form>
         </div>
       </DialogContent>

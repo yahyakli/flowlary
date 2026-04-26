@@ -12,11 +12,12 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wallet, Landmark, Calendar, Coins, Info, Sparkles, ArrowRight } from "lucide-react";
+import { Wallet, Landmark, Calendar, Coins, Info, Sparkles, ArrowRight, X } from "lucide-react";
 
 export function SetSalaryDialog() {
   const [open, setOpen] = useState(false);
@@ -73,11 +74,24 @@ export function SetSalaryDialog() {
           </div>
         </button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[520px] overflow-hidden rounded-[2.5rem] border-none bg-white p-0 shadow-2xl dark:bg-slate-950">
+      <DialogContent 
+        showCloseButton={false}
+        className="sm:max-w-[520px] overflow-hidden rounded-[2.5rem] border-none bg-white p-0 shadow-2xl dark:bg-slate-950"
+      >
+        <DialogClose asChild>
+          <button 
+            type="button"
+            className="absolute right-6 top-6 z-50 flex size-9 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-all hover:bg-white/30 hover:scale-110 active:scale-95"
+            aria-label="Close dialog"
+          >
+            <X className="size-5" />
+          </button>
+        </DialogClose>
+
         <div className="relative h-24 w-full bg-gradient-to-r from-blue-600 to-indigo-600 p-8">
           <div className="absolute -right-6 -top-6 size-32 rounded-full bg-white/10 blur-2xl" />
           <div className="absolute left-1/4 top-1/2 size-16 rounded-full bg-indigo-400/20 blur-xl" />
-          <Sparkles className="absolute right-8 top-8 size-8 text-white/20" />
+          <Sparkles className="absolute left-8 top-8 size-8 text-white/20" />
         </div>
         
         <div className="relative -mt-10 px-8">
