@@ -280,10 +280,10 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
                     onValueChange={(val) => setValue("category", val as ExpenseCategory, { shouldValidate: true })}
                     value={selectedCategory}
                   >
-                    <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-slate-50/50 px-3 text-sm font-semibold transition-all hover:border-slate-300 focus:bg-white focus:ring-4 focus:ring-slate-900/5 dark:border-slate-800 dark:bg-slate-900/50 dark:focus:border-emerald-500/30 dark:focus:bg-slate-900 dark:focus:ring-emerald-500/5">
+                    <SelectTrigger className="h-11 w-full rounded-xl border-slate-200 bg-slate-50/50 px-3 py-5 text-sm font-semibold transition-all hover:border-slate-300 focus:bg-white focus:ring-4 focus:ring-slate-900/5 dark:border-slate-800 dark:bg-slate-900/50 dark:focus:border-emerald-500/30 dark:focus:bg-slate-900 dark:focus:ring-emerald-500/5">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="max-h-72 rounded-[1rem] border-slate-200 bg-white/95 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95">
+                    <SelectContent className="max-h-72 px-2 rounded-[1rem] border-slate-200 bg-white/95 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95">
                       {Object.entries(categoryConfig).map(([value, { icon, label }]) => (
                         <SelectItem
                           key={value}
