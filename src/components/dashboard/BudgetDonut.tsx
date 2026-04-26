@@ -28,7 +28,7 @@ export function BudgetDonut({ data }: BudgetDonutProps) {
 
       <div className="flex w-full flex-col items-center gap-6">
         <div className="relative flex h-64 w-full items-center justify-center">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" className="z-20">
             <PieChart>
               <Pie
                 data={data}
@@ -62,7 +62,7 @@ export function BudgetDonut({ data }: BudgetDonutProps) {
             </PieChart>
           </ResponsiveContainer>
           
-          <div className="absolute flex flex-col items-center justify-center text-center">
+          <div className="absolute flex flex-col items-center justify-center text-center z-10">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Total</span>
             <span className="text-lg font-black text-slate-900 dark:text-slate-50">{formatCurrency(total)}</span>
           </div>
