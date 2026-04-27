@@ -2,11 +2,95 @@
 
 import { useState } from "react";
 import { User, Shield, LogOut, ChevronRight, Lock, Eye, EyeOff } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { updateProfileSchema, UpdateProfileSchema, updatePasswordSchema, UpdatePasswordSchema } from "@/lib/validations/user.schema";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
+  const { data: session, update: updateSession } = useSession();
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
-  const [showPassword, setShowPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  const {
+    register: registerProfile,
+    handleSubmit: handleProfileSubmit,
+    formState: { errors: profileErrors },
+  } = useForm<UpdateProfileSchema>({
+    resolver: zodResolver(updateProfileSchema),
+    values: {
+      name: session?.user?.name || "",
+    },
+  });
+
+  const {
+    register: registerPassword,
+    handleSubmit: handlePasswordSubmit,
+    reset: resetPasswordForm,
+    formState: { errors: passwordErrors },
+  } = useForm<UpdatePasswordSchema>({
+    resolver: zodResolver(updatePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  const onProfileSubmit = async (data: UpdateProfileSchema) => {
+    setIsUpdatingProfile(true);
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      const result = await res.json();
+
+      if (res.ok) {
+        toast.success("Profile updated successfully");
+        await updateSession({ name: data.name }); // Update NextAuth session
+      } else {
+        toast.error(result.error || "Failed to update profile");
+      }
+    } catch (error) {
+      toast.error("Something went wrong");
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
+
+  const onPasswordSubmit = async (data: UpdatePasswordSchema) => {
+    setIsUpdatingPassword(true);
+    try {
+      const res = await fetch("/api/user/security", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      const result = await res.json();
+
+      if (res.ok) {
+        toast.success("Password updated successfully");
+        resetPasswordForm();
+      } else {
+        toast.error(result.error || "Failed to update password");
+      }
+    } catch (error) {
+      toast.error("Something went wrong");
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
 
   const handleSignOut = () => {
     signOut({ callbackUrl: "/" });
@@ -78,7 +162,7 @@ export default function SettingsPage() {
         {/* Settings Content */}
         <div className="lg:col-span-2">
           {activeTab === 'profile' ? (
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <form onSubmit={handleProfileSubmit(onProfileSubmit)} className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
               <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50">Profile Information</h3>
               <p className="mt-1 text-sm text-slate-500">Update your public profile details.</p>
 
@@ -87,20 +171,46 @@ export default function SettingsPage() {
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Full Name</label>
                   <input
                     type="text"
-                    defaultValue="John Doe"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:focus:border-white"
+                    placeholder="Enter your full name"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:focus:border-white transition-all"
+                    {...registerProfile("name")}
                   />
+                  {profileErrors.name && (
+                    <p className="text-xs font-bold text-rose-500">{profileErrors.name.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Email Address</label>
+                  <input
+                    type="email"
+                    disabled
+                    value={session?.user?.email || ""}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500 outline-none cursor-not-allowed dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
+                  />
+                  <p className="text-[10px] text-slate-400">Email cannot be changed.</p>
                 </div>
 
                 <div className="flex justify-end pt-4">
-                  <button className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white transition-all hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
-                    Save Changes
+                  <button 
+                    type="submit"
+                    disabled={isUpdatingProfile}
+                    className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white transition-all hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 disabled:opacity-70 flex items-center gap-2"
+                  >
+                    {isUpdatingProfile ? (
+                      <>
+                        <div className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-slate-900/30 dark:border-t-slate-900" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Changes"
+                    )}
                   </button>
                 </div>
               </div>
-            </div>
+            </form>
           ) : (
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <form onSubmit={handlePasswordSubmit(onPasswordSubmit)} className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
               <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50">Account Security</h3>
               <p className="mt-1 text-sm text-slate-500">Manage your password and security preferences.</p>
 
@@ -111,11 +221,22 @@ export default function SettingsPage() {
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                       <input
-                        type={showPassword ? "text" : "password"}
+                        type={showCurrentPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-11 text-sm outline-none focus:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:focus:border-white"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-11 text-sm outline-none focus:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:focus:border-white transition-all"
+                        {...registerPassword("currentPassword")}
                       />
+                      <button 
+                        type="button"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        {showCurrentPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                      </button>
                     </div>
+                    {passwordErrors.currentPassword && (
+                      <p className="text-xs font-bold text-rose-500">{passwordErrors.currentPassword.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -123,17 +244,22 @@ export default function SettingsPage() {
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                       <input
-                        type={showPassword ? "text" : "password"}
+                        type={showNewPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-11 text-sm outline-none focus:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:focus:border-white"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-11 text-sm outline-none focus:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:focus:border-white transition-all"
+                        {...registerPassword("newPassword")}
                       />
                       <button 
-                        onClick={() => setShowPassword(!showPassword)}
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                       >
-                        {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        {showNewPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                       </button>
                     </div>
+                    {passwordErrors.newPassword && (
+                      <p className="text-xs font-bold text-rose-500">{passwordErrors.newPassword.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -141,21 +267,43 @@ export default function SettingsPage() {
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                       <input
-                        type={showPassword ? "text" : "password"}
+                        type={showConfirmPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-11 text-sm outline-none focus:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:focus:border-white"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-11 text-sm outline-none focus:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:focus:border-white transition-all"
+                        {...registerPassword("confirmPassword")}
                       />
+                      <button 
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                      </button>
                     </div>
+                    {passwordErrors.confirmPassword && (
+                      <p className="text-xs font-bold text-rose-500">{passwordErrors.confirmPassword.message}</p>
+                    )}
                   </div>
                 </div>
 
                 <div className="flex justify-end pt-4">
-                  <button className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white transition-all hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
-                    Update Password
+                  <button 
+                    type="submit"
+                    disabled={isUpdatingPassword}
+                    className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white transition-all hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 disabled:opacity-70 flex items-center gap-2"
+                  >
+                    {isUpdatingPassword ? (
+                      <>
+                        <div className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-slate-900/30 dark:border-t-slate-900" />
+                        Updating...
+                      </>
+                    ) : (
+                      "Update Password"
+                    )}
                   </button>
                 </div>
               </div>
-            </div>
+            </form>
           )}
         </div>
       </div>

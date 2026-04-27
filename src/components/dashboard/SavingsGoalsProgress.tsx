@@ -69,7 +69,7 @@ export function SavingsGoalsProgress({ goals }: SavingsGoalsProgressProps) {
         )}
         
         {goals.map((goal) => {
-          const id = (goal._id as any).toString();
+          const id = goal._id ? (goal._id as any).toString() : Math.random().toString();
           const Icon = iconMap[goal.icon] || Target;
           const progress = (goal.savedAmount / goal.targetAmount) * 100;
           const months = calculateMonthsLeft(goal);

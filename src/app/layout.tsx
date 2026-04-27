@@ -61,9 +61,9 @@ export default function RootLayout({
               <Footer />
               <ScrollToTop />
             </div>
-            <Toaster position="top-right" richColors />
           </SessionProvider>
         </ThemeProviderWrapper>
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   );

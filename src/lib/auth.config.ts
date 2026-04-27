@@ -31,15 +31,21 @@ export const authConfig = {
       // but this callback is part of the standard v5 pattern.
       return true; 
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id as string;
+      }
+      if (trigger === "update" && session?.name) {
+        token.name = session.name;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.id as string;
+        if (token.name) {
+          session.user.name = token.name as string;
+        }
       }
       return session;
     },
