@@ -7,7 +7,71 @@ import { BudgetDonut } from "@/components/dashboard/BudgetDonut";
 import { useExpenseStore } from "@/store/useExpenseStore";
 import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog";
 import { formatCurrency } from "@/lib/mock-data";
-import { Search, Filter, Receipt, Wallet, ArrowDownRight, Loader2 } from "lucide-react";
+import { Search, Filter, Receipt, Wallet, ArrowDownRight } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+function StatsCardSkeleton() {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900/50">
+      <Skeleton className="mb-4 size-12 rounded-2xl" />
+      <Skeleton className="h-4 w-24" />
+      <Skeleton className="mt-2 h-9 w-32" />
+    </div>
+  );
+}
+
+function TransactionsSkeleton() {
+  return (
+    <div className="rounded-[1.5rem] border border-slate-300 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/50">
+      <div className="mb-6 flex items-center justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <Skeleton className="h-5 w-16" />
+      </div>
+      <div className="space-y-3">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="flex items-center gap-4 rounded-2xl border border-slate-200 p-3 dark:border-slate-700">
+            <Skeleton className="size-10 shrink-0 rounded-xl" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-3 w-1/4" />
+            </div>
+            <Skeleton className="h-5 w-20" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BudgetDonutSkeleton() {
+  return (
+    <div className="flex flex-col items-center rounded-[1.5rem] border border-slate-300 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/50">
+      <div className="mb-6 w-full space-y-2">
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="h-3 w-48" />
+      </div>
+      <div className="relative flex h-64 w-full items-center justify-center">
+        <Skeleton className="size-48 rounded-full border-[15px] border-slate-100 dark:border-slate-800" />
+        <div className="absolute flex flex-col items-center gap-1">
+          <Skeleton className="h-3 w-8" />
+          <Skeleton className="h-5 w-16" />
+        </div>
+      </div>
+      <div className="mt-6 w-full space-y-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-950/40">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex items-center gap-2">
+            <Skeleton className="size-2.5 rounded-full" />
+            <Skeleton className="h-3 flex-1" />
+            <Skeleton className="h-3 w-8" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function ExpensesPage() {
   const { expenses, fetchExpenses, isLoading } = useExpenseStore();
@@ -66,6 +130,41 @@ export default function ExpensesPage() {
       color: data.color
     }));
   }, [expenses]);
+
+  if (isLoading && expenses.length === 0) {
+    return (
+      <section className="space-y-10">
+        {/* Hero Skeleton */}
+        <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 shadow-2xl sm:p-10">
+          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-4">
+              <Skeleton className="h-6 w-40 rounded-full bg-white/10" />
+              <Skeleton className="h-12 w-64 bg-white/10" />
+              <Skeleton className="h-6 w-96 bg-white/10" />
+            </div>
+            <Skeleton className="h-12 w-40 rounded-2xl bg-white/10" />
+          </div>
+        </div>
+
+        {/* Stats Skeletons */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <StatsCardSkeleton />
+          <StatsCardSkeleton />
+          <StatsCardSkeleton />
+        </div>
+
+        <div className="grid gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            <TransactionsSkeleton />
+          </div>
+          <div className="space-y-8">
+            <BudgetDonutSkeleton />
+            <Skeleton className="h-32 w-full rounded-[1.5rem]" />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="space-y-10">
@@ -147,17 +246,11 @@ export default function ExpensesPage() {
             </div>
           </div>
 
-          {isLoading && expenses.length === 0 ? (
-            <div className="flex h-64 items-center justify-center rounded-[1.5rem] border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900/50">
-              <Loader2 className="size-8 animate-spin text-emerald-500" />
-            </div>
-          ) : (
-            <RecentTransactions 
-              transactions={filteredExpenses.slice(0, 20)} 
-              hideGainIndicators={true}
-              onViewAll={() => setIsModalOpen(true)}
-            />
-          )}
+          <RecentTransactions 
+            transactions={filteredExpenses.slice(0, 20)} 
+            hideGainIndicators={true}
+            onViewAll={() => setIsModalOpen(true)}
+          />
 
           <AllTransactionsModal 
             isOpen={isModalOpen} 

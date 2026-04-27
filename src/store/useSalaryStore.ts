@@ -14,7 +14,7 @@ export const useSalaryStore = create<SalaryState>((set) => ({
   salary: 0,
   payDay: 1,
   initialBalance: 0,
-  isLoading: false,
+  isLoading: true,
   error: null,
 
   fetchSalary: async () => {

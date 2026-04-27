@@ -1,6 +1,7 @@
 "use client";
 
-import { SavingsGoal, formatCurrency, monthsToGoal } from "@/lib/mock-data";
+import { formatCurrency } from "@/lib/mock-data";
+import { IGoal } from "@/lib/db/types";
 import {
   Shield,
   Plane,
@@ -10,81 +11,82 @@ import {
   Target,
   Calendar,
   TrendingUp,
+  Heart,
+  Briefcase,
+  Trash2,
+  Pencil,
+  Plus
 } from "lucide-react";
+import { useGoalStore } from "@/store/useGoalStore";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { AddGoalDialog } from "@/components/goals/AddGoalDialog";
 
 interface SavingsGoalsProgressProps {
-  goals: SavingsGoal[];
+  goals: IGoal[];
 }
 
 const iconMap: Record<string, React.ElementType> = {
-  Shield,
-  Plane,
-  Laptop,
-  Car,
-  Home,
-  Target,
-};
-
-const colorMap: Record<string, { bg: string; fill: string; text: string; ring: string }> = {
-  cyan: {
-    bg: "bg-cyan-100 dark:bg-cyan-500/10",
-    fill: "bg-cyan-500",
-    text: "text-cyan-600 dark:text-cyan-400",
-    ring: "ring-cyan-500/20",
-  },
-  violet: {
-    bg: "bg-violet-100 dark:bg-violet-500/10",
-    fill: "bg-violet-500",
-    text: "text-violet-600 dark:text-violet-400",
-    ring: "ring-violet-500/20",
-  },
-  emerald: {
-    bg: "bg-emerald-100 dark:bg-emerald-500/10",
-    fill: "bg-emerald-500",
-    text: "text-emerald-600 dark:text-emerald-400",
-    ring: "ring-emerald-500/20",
-  },
-  amber: {
-    bg: "bg-amber-100 dark:bg-amber-500/10",
-    fill: "bg-amber-500",
-    text: "text-amber-600 dark:text-amber-400",
-    ring: "ring-amber-500/20",
-  },
-  pink: {
-    bg: "bg-pink-100 dark:bg-pink-500/10",
-    fill: "bg-pink-500",
-    text: "text-pink-600 dark:text-pink-400",
-    ring: "ring-pink-500/20",
-  },
+  shield: Shield,
+  plane: Plane,
+  laptop: Laptop,
+  car: Car,
+  home: Home,
+  target: Target,
+  heart: Heart,
+  briefcase: Briefcase,
 };
 
 export function SavingsGoalsProgress({ goals }: SavingsGoalsProgressProps) {
+  const deleteGoal = useGoalStore((state) => state.deleteGoal);
+
+  const calculateMonthsLeft = (goal: IGoal) => {
+    const remaining = goal.targetAmount - goal.savedAmount;
+    if (remaining <= 0) return 0;
+    if (goal.monthlyContribution <= 0) return Infinity;
+    return Math.ceil(remaining / goal.monthlyContribution);
+  };
+
   return (
     <div className="rounded-[1.5rem] border border-slate-300 bg-white p-6 shadow-sm transition-all hover:shadow-md dark:border-slate-700 dark:bg-slate-900/50">
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Savings Goals</h3>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Track your progress towards financial targets
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Savings Goals</h3>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Track your progress towards financial targets
+          </p>
+        </div>
       </div>
 
       <div className="space-y-5">
+        {goals.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <div className="flex size-16 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 dark:bg-slate-950">
+              <Target className="size-8" />
+            </div>
+            <p className="mt-4 text-sm font-medium text-slate-500">No active goals yet. Start dreaming!</p>
+          </div>
+        )}
+        
         {goals.map((goal) => {
+          const id = (goal._id as any).toString();
           const Icon = iconMap[goal.icon] || Target;
-          const colors = colorMap[goal.color] || colorMap.cyan;
           const progress = (goal.savedAmount / goal.targetAmount) * 100;
-          const months = monthsToGoal(goal);
+          const months = calculateMonthsLeft(goal);
           const remaining = goal.targetAmount - goal.savedAmount;
 
           return (
             <div
-              key={goal.id}
-              className="rounded-2xl border border-slate-200 p-4 transition-all hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-slate-600 dark:hover:bg-slate-950/50"
+              key={id}
+              className="group relative rounded-2xl border border-slate-200 p-4 transition-all hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-slate-600 dark:hover:bg-slate-950/50"
             >
               <div className="mb-3 flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className={`flex size-10 items-center justify-center rounded-xl ${colors.bg}`}>
-                    <Icon className={`size-5 ${colors.text}`} />
+                  <div 
+                    className="flex size-10 items-center justify-center rounded-xl"
+                    style={{ backgroundColor: `${goal.color}15`, color: goal.color }}
+                  >
+                    <Icon className="size-5" />
                   </div>
                   <div>
                     <p className="font-semibold text-slate-900 dark:text-slate-50">
@@ -95,18 +97,47 @@ export function SavingsGoalsProgress({ goals }: SavingsGoalsProgressProps) {
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className={`text-lg font-black ${colors.text}`}>
+                <div className="flex flex-col items-end">
+                  <p className="text-lg font-black" style={{ color: goal.color }}>
                     {progress.toFixed(0)}%
                   </p>
+                  
+                  {/* Action buttons */}
+                  <div className="mt-1 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <AddGoalDialog 
+                      goal={goal} 
+                      trigger={
+                        <button className="p-1.5 text-slate-400 hover:text-violet-500 transition-colors">
+                          <Pencil className="size-3.5" />
+                        </button>
+                      } 
+                    />
+                    <button 
+                      onClick={() => {
+                        toast.warning("Delete this goal?", {
+                          description: "This action cannot be undone.",
+                          action: {
+                            label: "Delete",
+                            onClick: () => deleteGoal(id),
+                          },
+                        });
+                      }}
+                      className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Progress bar */}
               <div className="mb-3 h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                 <div
-                  className={`h-full rounded-full ${colors.fill} transition-all duration-500`}
-                  style={{ width: `${Math.min(progress, 100)}%` }}
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ 
+                    width: `${Math.min(progress, 100)}%`,
+                    backgroundColor: goal.color 
+                  }}
                 />
               </div>
 
@@ -115,9 +146,11 @@ export function SavingsGoalsProgress({ goals }: SavingsGoalsProgressProps) {
                 <div className="flex items-center gap-1.5">
                   <Calendar className="size-3.5" />
                   <span>
-                    {months === Infinity
-                      ? "No timeline"
-                      : `${months} month${months !== 1 ? "s" : ""} left`}
+                    {months === 0 
+                      ? "Goal reached!" 
+                      : months === Infinity 
+                        ? "No timeline" 
+                        : `${months} month${months !== 1 ? "s" : ""} left`}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -125,7 +158,7 @@ export function SavingsGoalsProgress({ goals }: SavingsGoalsProgressProps) {
                   <span>{formatCurrency(goal.monthlyContribution)}/mo</span>
                 </div>
                 <div className="ml-auto font-medium">
-                  {formatCurrency(remaining)} remaining
+                  {remaining > 0 ? `${formatCurrency(remaining)} remaining` : "Completed"}
                 </div>
               </div>
             </div>

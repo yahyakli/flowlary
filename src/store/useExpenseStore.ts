@@ -15,7 +15,7 @@ interface ExpenseState {
 
 export const useExpenseStore = create<ExpenseState>((set, get) => ({
   expenses: [],
-  isLoading: false,
+  isLoading: true,
   error: null,
 
   fetchExpenses: async (month, year) => {
