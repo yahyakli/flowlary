@@ -1,12 +1,14 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import { compare } from "bcryptjs";
-import connectDB from "@/lib/db/mongoose";
+import connectDB, { clientPromise } from "@/lib/db/mongoose";
 import { User } from "@/lib/db/models/User";
 import { authConfig } from "./auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  adapter: MongoDBAdapter(clientPromise),
   providers: [
     ...authConfig.providers,
     CredentialsProvider({

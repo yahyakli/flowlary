@@ -167,7 +167,7 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <button className="group inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-bold text-white shadow-xl shadow-slate-950/10 transition-all hover:-translate-y-0.5 hover:bg-slate-900 active:translate-y-0 dark:bg-emerald-500 dark:text-slate-950 dark:hover:bg-emerald-400">
+          <button className="group inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-2.5 text-sm font-bold text-white shadow-xl shadow-slate-950/10 transition-all hover:-translate-y-0.5 hover:bg-slate-900 active:translate-y-0 dark:bg-emerald-500 dark:text-slate-950 dark:hover:bg-emerald-400">
             <Plus className="size-5 transition-transform group-hover:rotate-90" />
             Add Expense
           </button>

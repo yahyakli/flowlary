@@ -3,10 +3,17 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LogOut, SparklesIcon, Menu } from "lucide-react"
+import { LogOut, SparklesIcon, Menu, User as UserIcon } from "lucide-react"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Sheet,
   SheetContent,
@@ -27,6 +34,11 @@ export function Navbar() {
   useEffect(() => {
     setIsOpen(false)
   }, [pathname])
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return "U"
+    return name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-300 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950/90">
@@ -66,14 +78,33 @@ export function Navbar() {
         <div className="flex items-center gap-3">
           <ThemeToggle />
           {isAuthenticated ? (
-            <button
-              type="button"
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-100 hover:shadow-sm dark:border-slate-800 dark:bg-slate-900/90 dark:text-slate-300 dark:hover:bg-slate-800"
-            >
-              <LogOut className="size-4" />
-              <span className="hidden sm:inline">Sign out</span>
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 p-1 pr-3 transition-all hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900/90 dark:hover:bg-slate-800">
+                  <Avatar className="size-8">
+                    <AvatarImage src={session?.user?.image || ""} alt={session?.user?.name || ""} />
+                    <AvatarFallback className="bg-cyan-500 text-xs text-white">
+                      {getInitials(session?.user?.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {session?.user?.name?.split(" ")[0]}
+                  </span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                align="end" 
+                className="w-48 rounded-2xl border bg-white border-slate-200 p-1.5 shadow-xl dark:border-slate-800 dark:bg-slate-900"
+              >
+                <DropdownMenuItem
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  className="group flex cursor-pointer items-center rounded-xl px-3 py-2.5 text-red-600 transition-all hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+                >
+                  <LogOut className="mr-2 size-4 transition-transform group-hover:-translate-x-0.5" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <>
               <Link

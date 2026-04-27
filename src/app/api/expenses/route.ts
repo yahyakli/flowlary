@@ -12,18 +12,42 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const month = searchParams.get("month") ? parseInt(searchParams.get("month")!) : new Date().getMonth() + 1;
-    const year = searchParams.get("year") ? parseInt(searchParams.get("year")!) : new Date().getFullYear();
+    const month = searchParams.get("month");
+    const year = searchParams.get("year");
+    const search = searchParams.get("search");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const skip = (page - 1) * limit;
 
     await connectDB();
 
-    const expenses = await Expense.find({
-      userId: session.user.id,
-      month,
-      year,
-    }).sort({ createdAt: -1 }).lean();
+    const query: any = { userId: session.user.id };
+    if (month) query.month = parseInt(month);
+    if (year) query.year = parseInt(year);
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { category: { $regex: search, $options: "i" } },
+      ];
+    }
 
-    return NextResponse.json(expenses);
+    const expenses = await Expense.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const total = await Expense.countDocuments(query);
+
+    return NextResponse.json({
+      expenses,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

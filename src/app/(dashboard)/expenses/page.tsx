@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
+import { AllTransactionsModal } from "@/components/expenses/AllTransactionsModal";
 import { BudgetDonut } from "@/components/dashboard/BudgetDonut";
 import { useExpenseStore } from "@/store/useExpenseStore";
 import { AddExpenseDialog } from "@/components/expenses/AddExpenseDialog";
@@ -11,6 +12,7 @@ import { Search, Filter, Receipt, Wallet, ArrowDownRight, Loader2 } from "lucide
 export default function ExpensesPage() {
   const { expenses, fetchExpenses, isLoading } = useExpenseStore();
   const [searchTerm, setSearchTerm] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchExpenses();
@@ -150,8 +152,17 @@ export default function ExpensesPage() {
               <Loader2 className="size-8 animate-spin text-emerald-500" />
             </div>
           ) : (
-            <RecentTransactions transactions={filteredExpenses} />
+            <RecentTransactions 
+              transactions={filteredExpenses.slice(0, 20)} 
+              hideGainIndicators={true}
+              onViewAll={() => setIsModalOpen(true)}
+            />
           )}
+
+          <AllTransactionsModal 
+            isOpen={isModalOpen} 
+            onClose={() => setIsModalOpen(false)} 
+          />
         </div>
 
         {/* Sidebar - 1/3 width */}

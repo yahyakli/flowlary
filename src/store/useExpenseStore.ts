@@ -29,7 +29,9 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
       if (!response.ok) throw new Error('Failed to fetch expenses');
       
       const data = await response.json();
-      set({ expenses: data, isLoading: false });
+      // Handle both old array format and new object format with pagination
+      const expenses = Array.isArray(data) ? data : data.expenses;
+      set({ expenses: expenses || [], isLoading: false });
     } catch (error: any) {
       set({ error: error.message, isLoading: false });
       toast.error('Could not load expenses');
