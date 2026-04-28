@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { incomeSchema, IncomeSchema } from "@/lib/validations/income.schema";
 import {
@@ -28,7 +29,7 @@ export function AddIncomeDialog() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<IncomeSchema>({
+  } = useForm<z.input<typeof incomeSchema>, any, IncomeSchema>({
     resolver: zodResolver(incomeSchema),
     defaultValues: {
       title: "",

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { goalSchema, GoalSchema } from "@/lib/validations/goal.schema";
 import { useGoalStore } from "@/store/useGoalStore";
@@ -77,7 +78,7 @@ export function AddGoalDialog({ goal, trigger }: GoalDialogProps) {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<GoalSchema>({
+  } = useForm<z.input<typeof goalSchema>, any, GoalSchema>({
     resolver: zodResolver(goalSchema),
     defaultValues: {
       title: goal?.title || "",
