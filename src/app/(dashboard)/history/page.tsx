@@ -231,7 +231,7 @@ export default function HistoryPage() {
                   Export Data
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 rounded-2xl border-slate-200 dark:border-slate-800 dark:bg-slate-950 p-2">
+              <DropdownMenuContent align="end" className="w-48 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-2">
                 <DropdownMenuItem onClick={() => handleExport("csv")} className="flex items-center gap-2 rounded-xl cursor-pointer py-2.5 focus:bg-slate-100 dark:focus:bg-slate-900">
                   <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
                     <FileText className="size-4" />
