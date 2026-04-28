@@ -7,7 +7,7 @@ export const goalSchema = z.object({
   monthlyContribution: z.number().positive('Monthly contribution must be positive'),
   icon: z.string().min(1, 'Icon is required'),
   color: z.string().min(1, 'Color is required'),
-  deadline: z.date().optional(),
+  deadline: z.coerce.date().optional(),
 });
 
 export type GoalSchema = z.infer<typeof goalSchema>;
