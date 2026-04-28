@@ -52,7 +52,7 @@ export function AddDebtDialog({ debt, trigger }: DebtDialogProps) {
       remainingAmount: debt?.remainingAmount || 0,
       monthlyPayment: debt?.monthlyPayment || 0,
       interestRate: debt?.interestRate || 0,
-      dueDay: debt?.dueDay || undefined,
+      dueDay: debt?.dueDay || 1,
       lender: debt?.lender || "",
     },
   });
@@ -66,7 +66,7 @@ export function AddDebtDialog({ debt, trigger }: DebtDialogProps) {
         remainingAmount: debt?.remainingAmount || 0,
         monthlyPayment: debt?.monthlyPayment || 0,
         interestRate: debt?.interestRate || 0,
-        dueDay: debt?.dueDay || undefined,
+        dueDay: debt?.dueDay || 1,
         lender: debt?.lender || "",
       });
     }
@@ -232,7 +232,7 @@ export function AddDebtDialog({ debt, trigger }: DebtDialogProps) {
               {/* Due Day */}
               <div className="space-y-1.5">
                 <Label htmlFor="debt-dueDay" className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Due Day of Month (Optional)
+                  Due Day of Month
                 </Label>
                 <Input
                   id="debt-dueDay"
@@ -241,7 +241,7 @@ export function AddDebtDialog({ debt, trigger }: DebtDialogProps) {
                   max={31}
                   placeholder="e.g., 15"
                   className="h-10 rounded-xl border-slate-200 bg-slate-50 px-4 font-bold dark:border-slate-800 dark:bg-slate-900 text-sm"
-                  {...register("dueDay", { valueAsNumber: true, setValueAs: (v) => v === "" || isNaN(v) ? undefined : Number(v) })}
+                  {...register("dueDay", { valueAsNumber: true })}
                 />
                 {errors.dueDay && <p className="text-[10px] font-bold text-rose-500">{errors.dueDay.message}</p>}
               </div>

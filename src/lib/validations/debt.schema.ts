@@ -6,7 +6,7 @@ export const debtSchema = z.object({
   remainingAmount: z.number().min(0, 'Remaining amount cannot be negative'),
   monthlyPayment: z.number().positive('Monthly payment must be positive'),
   interestRate: z.number().min(0, 'Interest rate cannot be negative'),
-  dueDay: z.number().min(1).max(31).optional(),
+  dueDay: z.number().min(1, 'Day must be at least 1').max(31, 'Day cannot exceed 31'),
   lender: z.string().min(1, 'Lender is required'),
 });
 

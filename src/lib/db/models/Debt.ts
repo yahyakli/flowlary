@@ -9,7 +9,7 @@ const debtSchema = new Schema<IDebt>(
     remainingAmount: { type: Number, required: true },
     monthlyPayment: { type: Number, required: true },
     interestRate: { type: Number, required: true },
-    dueDay: { type: Number, min: 1, max: 31 },
+    dueDay: { type: Number, required: true, min: 1, max: 31 },
     lender: { type: String, required: true },
     isCompleted: { type: Boolean, required: true, default: false },
   },
