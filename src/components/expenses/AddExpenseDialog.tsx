@@ -35,25 +35,40 @@ import {
   ArrowRight,
   Pencil,
   X,
+  Home,
+  Zap,
+  Car,
+  Utensils,
+  HeartPulse,
+  Shield,
+  Film,
+  GraduationCap,
+  PiggyBank,
+  CreditCard,
+  Wifi,
+  LineChart,
+  User,
+  MoreHorizontal
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IExpense } from "@/lib/db/types";
 
 /* ─── Category config ─────────────────────────────────────────── */
-const categoryConfig: Record<ExpenseCategory, { icon: string; label: string }> = {
-  [ExpenseCategory.Housing]:       { icon: "🏠", label: "Housing" },
-  [ExpenseCategory.Utilities]:     { icon: "⚡", label: "Utilities" },
-  [ExpenseCategory.Transportation]:{ icon: "🚗", label: "Transportation" },
-  [ExpenseCategory.Food]:          { icon: "🍽", label: "Food" },
-  [ExpenseCategory.Healthcare]:    { icon: "💊", label: "Healthcare" },
-  [ExpenseCategory.Insurance]:     { icon: "🛡", label: "Insurance" },
-  [ExpenseCategory.Entertainment]: { icon: "🎬", label: "Entertainment" },
-  [ExpenseCategory.Education]:     { icon: "📚", label: "Education" },
-  [ExpenseCategory.Savings]:       { icon: "🐷", label: "Savings" },
-  [ExpenseCategory.Debt]:          { icon: "💳", label: "Debt" },
-  [ExpenseCategory.Subscriptions]: { icon: "📡", label: "Subscriptions" },
-  [ExpenseCategory.Personal]:      { icon: "👤", label: "Personal" },
-  [ExpenseCategory.Miscellaneous]: { icon: "⋯",  label: "Other" },
+const categoryConfig: Record<ExpenseCategory, { icon: React.ElementType; label: string }> = {
+  [ExpenseCategory.Housing]:       { icon: Home, label: "Housing" },
+  [ExpenseCategory.Utilities]:     { icon: Zap, label: "Utilities" },
+  [ExpenseCategory.Transportation]:{ icon: Car, label: "Transportation" },
+  [ExpenseCategory.Food]:          { icon: Utensils, label: "Food" },
+  [ExpenseCategory.Healthcare]:    { icon: HeartPulse, label: "Healthcare" },
+  [ExpenseCategory.Insurance]:     { icon: Shield, label: "Insurance" },
+  [ExpenseCategory.Entertainment]: { icon: Film, label: "Entertainment" },
+  [ExpenseCategory.Education]:     { icon: GraduationCap, label: "Education" },
+  [ExpenseCategory.Savings]:       { icon: PiggyBank, label: "Savings" },
+  [ExpenseCategory.Debt]:          { icon: CreditCard, label: "Debt" },
+  [ExpenseCategory.Subscriptions]: { icon: Wifi, label: "Subscriptions" },
+  [ExpenseCategory.Investment]:    { icon: LineChart, label: "Investment" },
+  [ExpenseCategory.Personal]:      { icon: User, label: "Personal" },
+  [ExpenseCategory.Miscellaneous]: { icon: MoreHorizontal,  label: "Other" },
 };
 
 /* ─── Field label ─────────────────────────────────────────────── */
@@ -302,7 +317,7 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="max-h-72 px-2 rounded-[1rem] border-slate-200 bg-white/95 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95">
-                      {Object.entries(categoryConfig).map(([value, { icon, label }]) => (
+                      {Object.entries(categoryConfig).map(([value, { icon: Icon, label }]) => (
                         <SelectItem
                           key={value}
                           value={value}
@@ -310,7 +325,7 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
                         >
                           <div className="flex items-center gap-2.5">
                             <span className="flex size-7 items-center justify-center rounded-md bg-slate-100 text-xs transition-colors group-focus:bg-white dark:bg-slate-800 dark:group-focus:bg-slate-700">
-                              {icon}
+                              <Icon className="size-4" />
                             </span>
                             <span className="font-semibold text-slate-700 dark:text-slate-300">{label}</span>
                           </div>

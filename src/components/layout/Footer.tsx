@@ -50,10 +50,10 @@ export function Footer() {
             Get in touch
           </p>
           <p className="text-sm leading-6 text-slate-700 dark:text-slate-400">
-            Need help? Reach out at hello@flowlary.com.
+            Need help? Reach out at <a href="mailto:akli.yahya05@gmail.com" className="hover:underline">akli.yahya05@gmail.com</a>.
           </p>
           <p className="text-sm leading-6 text-slate-700 dark:text-slate-400 md:-bottom-1 md:absolute">
-            © {new Date().getFullYear()} Flowlary. All rights reserved.
+            © {new Date().getFullYear()} Flowlary. Made with love by <a href="https://akliyahya.vercel.app" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">AKLI YAHYA</a>.
           </p>
         </div>
       </div>

@@ -13,6 +13,7 @@ export enum ExpenseCategory {
   Debt = 'debt',
   Subscriptions = 'subscriptions',
   Personal = 'personal',
+  Investment = 'investment',
   Miscellaneous = 'miscellaneous',
 }
 
