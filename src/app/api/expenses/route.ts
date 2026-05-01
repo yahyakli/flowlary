@@ -3,6 +3,7 @@ import connectDB from "@/lib/db/mongoose";
 import { Expense } from "@/lib/db/models/Expense";
 import { expenseSchema } from "@/lib/validations/expense.schema";
 import { NextResponse } from "next/server";
+import { ensureRecurringExpenses } from "@/lib/utils/rollover";
 
 export async function GET(req: Request) {
   try {
@@ -12,18 +13,22 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const month = searchParams.get("month");
-    const year = searchParams.get("year");
+    const now = new Date();
+    const monthStr = searchParams.get("month");
+    const yearStr = searchParams.get("year");
+    
+    // Always trigger rollover for the current month
+    await connectDB();
+    await ensureRecurringExpenses(session.user.id, now.getMonth() + 1, now.getFullYear());
+
     const search = searchParams.get("search");
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const limit = parseInt(searchParams.get("limit") || "100"); // Increase limit to see more data
     const skip = (page - 1) * limit;
 
-    await connectDB();
-
     const query: any = { userId: session.user.id };
-    if (month) query.month = parseInt(month);
-    if (year) query.year = parseInt(year);
+    if (monthStr) query.month = parseInt(monthStr);
+    if (yearStr) query.year = parseInt(yearStr);
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: "i" } },

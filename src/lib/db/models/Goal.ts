@@ -12,6 +12,8 @@ const goalSchema = new Schema<IGoal>(
     icon: { type: String, required: true, default: 'target' },
     color: { type: String, required: true, default: '#4f46e5' },
     isCompleted: { type: Boolean, required: true, default: false },
+    lastProcessedMonth: { type: Number },
+    lastProcessedYear: { type: Number },
   },
   {
     timestamps: true,

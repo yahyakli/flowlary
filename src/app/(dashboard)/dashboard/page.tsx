@@ -15,8 +15,13 @@ import { useSalaryStore } from "@/store/useSalaryStore";
 import { useExpenseStore } from "@/store/useExpenseStore";
 import { useGoalStore } from "@/store/useGoalStore";
 import { useDebtStore } from "@/store/useDebtStore";
+import { useIncomeStore } from "@/store/useIncomeStore";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { MonthlySpending, CategoryBreakdown, HealthMetrics } from "@/lib/mock-data";
+import type { MonthlySpending, CategoryBreakdown } from "@/lib/mock-data";
+import { 
+  calculateFinancialSummary, 
+  calculateHealthMetrics 
+} from "@/lib/utils/calculations";
 import { Plus, Coins } from "lucide-react";
 
 // Category colors for the donut chart
@@ -106,6 +111,12 @@ export default function DashboardPage() {
   const { expenses, fetchExpenses, isLoading: expensesLoading } = useExpenseStore();
   const { goals, fetchGoals, isLoading: goalsLoading } = useGoalStore();
   const { debts, fetchDebts, isLoading: debtsLoading } = useDebtStore();
+  // useIncomeStore hook for extra earnings
+  const { incomes, fetchIncomes, isLoading: incomesLoading } = useIncomeStore();
+
+  const now = useMemo(() => new Date(), []);
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
 
   // Fetch all data on mount
   useEffect(() => {
@@ -113,50 +124,33 @@ export default function DashboardPage() {
     fetchExpenses();
     fetchGoals();
     fetchDebts();
-  }, [fetchSalary, fetchExpenses, fetchGoals, fetchDebts]);
+    fetchIncomes();
+  }, [fetchSalary, fetchExpenses, fetchGoals, fetchDebts, fetchIncomes]);
 
   // Compute the financial summary from real data
   const summary = useMemo(() => {
-    const fixedExpenses = expenses
-      .filter((e) => e.type === "fixed")
-      .reduce((acc, e) => acc + e.amount, 0);
-
-    const variableExpenses = expenses
-      .filter((e) => e.type === "variable")
-      .reduce((acc, e) => acc + e.amount, 0);
-
-    const savingsContributions = goals.reduce(
-      (acc, g) => acc + g.monthlyContribution,
-      0
+    return calculateFinancialSummary(
+      salary,
+      initialBalance,
+      incomes,
+      expenses,
+      goals,
+      debts,
+      currentMonth,
+      currentYear
     );
-
-    const debtPayments = debts
-      .filter((d) => !d.isCompleted)
-      .reduce((acc, d) => acc + d.monthlyPayment, 0);
-
-    const totalIncome = salary + initialBalance;
-    const totalCommitments = fixedExpenses + variableExpenses + savingsContributions + debtPayments;
-    const remaining = totalIncome - totalCommitments;
-
-    return {
-      salary: totalIncome,
-      fixedExpenses,
-      variableExpenses,
-      savingsContributions,
-      debtPayments,
-      remaining: Math.max(remaining, 0),
-      currency: "MAD",
-    };
-  }, [salary, initialBalance, expenses, goals, debts]);
+  }, [salary, initialBalance, incomes, expenses, goals, debts, currentMonth, currentYear]);
 
   // Compute category breakdown for the donut chart from real expenses
   const categoryBreakdown: CategoryBreakdown[] = useMemo(() => {
     const breakdown: Record<string, number> = {};
 
-    expenses.forEach((ex) => {
-      const cat = ex.category;
-      breakdown[cat] = (breakdown[cat] || 0) + ex.amount;
-    });
+    expenses
+      .filter(e => e.month === currentMonth && e.year === currentYear)
+      .forEach((ex) => {
+        const cat = ex.category;
+        breakdown[cat] = (breakdown[cat] || 0) + ex.amount;
+      });
 
     return Object.entries(breakdown)
       .map(([category, amount]) => ({
@@ -165,7 +159,7 @@ export default function DashboardPage() {
         color: CATEGORY_COLORS[category.toLowerCase()] || "#64748b",
       }))
       .sort((a, b) => b.amount - a.amount);
-  }, [expenses]);
+  }, [expenses, currentMonth, currentYear]);
 
   // Compute monthly spending data for the last 6 months from real expenses
   const monthlySpending: MonthlySpending[] = useMemo(() => {
@@ -192,44 +186,16 @@ export default function DashboardPage() {
   }, [expenses]);
 
   // Compute health metrics from real data
-  const healthMetrics: HealthMetrics = useMemo(() => {
-    const totalExpenses = summary.fixedExpenses + summary.variableExpenses;
-    const totalDebtPayments = summary.debtPayments;
-
-    // Savings rate: monthly savings contributions as % of salary
-    const savingsRate = summary.salary > 0
-      ? (summary.savingsContributions / summary.salary) * 100
-      : 0;
-
-    // Debt-to-income ratio: monthly debt payments as % of salary
-    const debtToIncomeRatio = summary.salary > 0
-      ? (totalDebtPayments / summary.salary) * 100
-      : 0;
-
-    // Budget adherence: how much of salary is NOT overspent (capped at 100)
-    const totalCommitments = totalExpenses + summary.savingsContributions + totalDebtPayments;
-    const budgetAdherence = summary.salary > 0
-      ? Math.min(Math.round(((summary.salary - totalCommitments) / summary.salary) * 100 + 100), 100)
-      : 100;
-
-    // Emergency fund: if any goal has "emergency" in the title and is > 50% funded
-    const hasEmergencyFund = goals.some(
-      (g) =>
-        g.title.toLowerCase().includes("emergency") &&
-        g.savedAmount >= g.targetAmount * 0.5
-    );
-
-    return {
-      savingsRate: Math.round(savingsRate * 10) / 10,
-      debtToIncomeRatio: Math.round(debtToIncomeRatio * 10) / 10,
-      budgetAdherence: Math.max(budgetAdherence, 0),
-      hasEmergencyFund,
-    };
+  const healthMetrics = useMemo(() => {
+    return calculateHealthMetrics(summary, goals);
   }, [summary, goals]);
 
   // Recent transactions: map expenses for the RecentTransactions component
   const recentTransactions = useMemo(() => {
-    return expenses.slice(0, 8).map((e) => ({
+    return expenses
+      .filter(e => e.month === currentMonth && e.year === currentYear)
+      .slice(0, 8)
+      .map((e) => ({
       id: (e._id as any)?.toString(),
       _id: e._id,
       title: e.title,
@@ -247,7 +213,7 @@ export default function DashboardPage() {
   }, [expenses]);
 
   const isInitialLoading =
-    salaryLoading && expensesLoading && goalsLoading && debtsLoading;
+    salaryLoading && expensesLoading && goalsLoading && debtsLoading && incomesLoading;
 
   if (isInitialLoading && expenses.length === 0 && goals.length === 0) {
     return <DashboardSkeleton />;

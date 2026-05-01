@@ -11,6 +11,8 @@ export interface IGoal {
   icon: string;
   color: string;
   isCompleted: boolean;
+  lastProcessedMonth?: number;
+  lastProcessedYear?: number;
   createdAt: Date;
   updatedAt: Date;
 }

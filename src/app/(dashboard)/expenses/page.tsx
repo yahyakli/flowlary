@@ -82,6 +82,10 @@ export default function ExpensesPage() {
     fetchExpenses();
   }, [fetchExpenses]);
 
+  const now = useMemo(() => new Date(), []);
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
   const filteredExpenses = useMemo(() => {
     return expenses.filter(
       (t) =>
@@ -90,21 +94,26 @@ export default function ExpensesPage() {
     );
   }, [expenses, searchTerm]);
 
+  // Filter expenses for current month stats
+  const currentMonthExpenses = useMemo(() => {
+    return expenses.filter(e => e.month === currentMonth && e.year === currentYear);
+  }, [expenses, currentMonth, currentYear]);
+
   const totalExpenses = useMemo(() => 
-    expenses.reduce((acc, t) => acc + t.amount, 0),
-  [expenses]);
+    currentMonthExpenses.reduce((acc, t) => acc + t.amount, 0),
+  [currentMonthExpenses]);
 
   const fixedExpenses = useMemo(() => 
-    expenses
+    currentMonthExpenses
       .filter((t) => t.type === "fixed")
       .reduce((acc, t) => acc + t.amount, 0),
-  [expenses]);
+  [currentMonthExpenses]);
 
   const variableExpenses = useMemo(() => 
-    expenses
+    currentMonthExpenses
       .filter((t) => t.type === "variable")
       .reduce((acc, t) => acc + t.amount, 0),
-  [expenses]);
+  [currentMonthExpenses]);
 
   const categoryBreakdown = useMemo(() => {
     const breakdown: Record<string, { amount: number; color: string }> = {};
@@ -113,7 +122,7 @@ export default function ExpensesPage() {
       '#ec4899', '#f97316', '#3b82f6', '#64748b'
     ];
     
-    expenses.forEach((ex, i) => {
+    currentMonthExpenses.forEach((ex) => {
       const cat = ex.category;
       if (!breakdown[cat]) {
         breakdown[cat] = { 
@@ -129,7 +138,7 @@ export default function ExpensesPage() {
       amount: data.amount,
       color: data.color
     }));
-  }, [expenses]);
+  }, [currentMonthExpenses]);
 
   if (isLoading && expenses.length === 0) {
     return (
@@ -199,7 +208,7 @@ export default function ExpensesPage() {
           <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
             <Receipt className="size-6" />
           </div>
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Expenses</p>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Expenses ({now.toLocaleString('default', { month: 'long' })})</p>
           <h3 className="mt-1 text-3xl font-black text-slate-900 dark:text-slate-50">
             {formatCurrency(totalExpenses)}
           </h3>
@@ -209,7 +218,7 @@ export default function ExpensesPage() {
           <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400">
             <Wallet className="size-6" />
           </div>
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Fixed Commitments</p>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Fixed Commitments ({now.toLocaleString('default', { month: 'long' })})</p>
           <h3 className="mt-1 text-3xl font-black text-slate-900 dark:text-slate-50">
             {formatCurrency(fixedExpenses)}
           </h3>
@@ -219,7 +228,7 @@ export default function ExpensesPage() {
           <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
             <ArrowDownRight className="size-6" />
           </div>
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Variable Spending</p>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Variable Spending (May)</p>
           <h3 className="mt-1 text-3xl font-black text-slate-900 dark:text-slate-50">
             {formatCurrency(variableExpenses)}
           </h3>

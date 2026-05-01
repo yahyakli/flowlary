@@ -6,9 +6,12 @@ import { Wallet, TrendingUp, PiggyBank, DollarSign, ArrowUpRight, ArrowDownRight
 interface SummaryCardsProps {
   summary: {
     salary: number;
+    initialBalance: number;
+    extraIncome: number;
     fixedExpenses: number;
     variableExpenses: number;
     savingsContributions: number;
+    savingsCategory: number;
     debtPayments: number;
     remaining: number;
     currency: string;
@@ -16,42 +19,37 @@ interface SummaryCardsProps {
 }
 
 export function SummaryCards({ summary }: SummaryCardsProps) {
+  const totalInflow = summary.initialBalance + summary.salary + summary.extraIncome;
+  const totalExpenses = summary.fixedExpenses + summary.variableExpenses + summary.debtPayments;
+
   const cards = [
     {
-      title: "Net Salary",
-      value: summary.salary,
-      description: "Take-home pay this period",
+      title: "Salary",
+      value: totalInflow,
+      description: "Total available funds",
       icon: Wallet,
       color: "cyan",
-      trend: "2.5% from last month",
-      trendDirection: "up" as const,
     },
     {
-      title: "Fixed Expenses",
-      value: summary.fixedExpenses,
-      description: "Rent, bills & subscriptions",
+      title: "All Expenses",
+      value: totalExpenses,
+      description: "Fixed & variable spending",
       icon: TrendingUp,
       color: "violet",
-      trend: `${((summary.fixedExpenses / summary.salary) * 100).toFixed(0)}% of salary`,
-      trendDirection: "down" as const,
     },
     {
-      title: "Savings & Goals",
+      title: "Goal Contributions",
       value: summary.savingsContributions,
-      description: "Contributing to your future",
+      description: "Monthly target",
       icon: PiggyBank,
       color: "emerald",
-      trend: `${((summary.savingsContributions / summary.salary) * 100).toFixed(0)}% savings rate`,
-      trendDirection: "up" as const,
     },
     {
-      title: "Available Cash",
+      title: "Current Balance",
       value: summary.remaining,
-      description: "Free budget after commitments",
+      description: "Ready to spend",
       icon: DollarSign,
       color: "amber",
-      trend: "After all expenses",
-      trendDirection: "down" as const,
     },
   ];
 
@@ -96,22 +94,6 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
               <div className={`flex size-12 items-center justify-center rounded-2xl ${colors.bg}`}>
                 <Icon className={`size-6 ${colors.icon}`} />
               </div>
-              {card.trendDirection === "up" && (
-                <div className="flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 dark:bg-emerald-500/10">
-                  <ArrowUpRight className="size-3.5 text-emerald-500" />
-                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    +{card.trend}
-                  </span>
-                </div>
-              )}
-              {card.trendDirection === "down" && (
-                <div className="flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 dark:bg-red-500/10">
-                  <ArrowDownRight className="size-3.5 text-red-500" />
-                  <span className="text-xs font-semibold text-red-600 dark:text-red-400">
-                    {card.trend}
-                  </span>
-                </div>
-              )}
             </div>
 
             <div className="mt-4">

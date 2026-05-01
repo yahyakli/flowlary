@@ -3,6 +3,7 @@ import connectDB from "@/lib/db/mongoose";
 import { Goal } from "@/lib/db/models/Goal";
 import { goalSchema } from "@/lib/validations/goal.schema";
 import { NextResponse } from "next/server";
+import { ensureGoalContributions } from "@/lib/utils/rollover";
 
 export async function GET(req: Request) {
   try {
@@ -11,7 +12,9 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const now = new Date();
     await connectDB();
+    await ensureGoalContributions(session.user.id, now.getMonth() + 1, now.getFullYear());
 
     const goals = await Goal.find({ userId: session.user.id })
       .sort({ deadline: 1 })
@@ -35,10 +38,13 @@ export async function POST(req: Request) {
 
     await connectDB();
 
+    const now = new Date();
     const goal = await Goal.create({
       ...validatedData,
       userId: session.user.id,
       isCompleted: validatedData.savedAmount >= validatedData.targetAmount,
+      lastProcessedMonth: now.getMonth() + 1,
+      lastProcessedYear: now.getFullYear(),
     });
 
     return NextResponse.json(goal, { status: 201 });
