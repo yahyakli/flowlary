@@ -103,7 +103,7 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
     reset,
     formState: { errors },
   } = useForm<ExpenseSchema>({
-    resolver: zodResolver(expenseSchema),
+    resolver: zodResolver(expenseSchema) as any,
     defaultValues: {
       title: "",
       amount: 0,
@@ -220,6 +220,12 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
                   type="button"
                   onClick={() => {
                     setValue("type", t, { shouldValidate: true, shouldDirty: true });
+                    if (t === "variable") {
+                      setValue("dueDay", undefined, { shouldValidate: true });
+                      setValue("isRecurring", false);
+                    } else {
+                      setValue("isRecurring", true);
+                    }
                   }}
                   className={cn(
                     "relative flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all duration-300",
@@ -336,6 +342,9 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
                         : "Monthly"}
                     </div>
                   </div>
+                  {errors.dueDay && (
+                    <p className="px-1 text-[10px] font-bold text-rose-500">{errors.dueDay.message}</p>
+                  )}
                 </div>
               )}
 

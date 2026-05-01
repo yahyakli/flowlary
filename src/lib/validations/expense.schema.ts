@@ -7,7 +7,10 @@ export const expenseSchema = z.object({
   category: z.nativeEnum(ExpenseCategory),
   type: z.enum(['fixed', 'variable']),
   isRecurring: z.boolean(),
-  dueDay: z.number().min(1).max(31).optional(),
+  dueDay: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? undefined : Number(val)),
+    z.number().min(1).max(31).optional()
+  ),
   month: z.number().min(1).max(12),
   year: z.number().min(2000),
   tags: z.array(z.string()),

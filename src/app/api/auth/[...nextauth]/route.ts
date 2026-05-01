@@ -1,6 +1,12 @@
+import { handlers } from "@/lib/auth";
+import { NextRequest } from "next/server";
+
 export const runtime = "nodejs";
 
-import { handlers } from "@/lib/auth";
+export async function GET(req: NextRequest) {
+  return handlers.GET(req);
+}
 
-export const GET = handlers.GET;
-export const POST = handlers.POST;
+export async function POST(req: NextRequest) {
+  return handlers.POST(req);
+}
