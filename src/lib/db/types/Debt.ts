@@ -6,11 +6,16 @@ export interface IDebt {
   title: string;
   totalAmount: number;
   remainingAmount: number;
-  monthlyPayment: number;
   interestRate: number;
   dueDay?: number;
   lender: string;
   isCompleted: boolean;
+  name: string;
+  originalAmount: number;
+  currentBalance: number;
+  interestPercent: number;
+  minPayment: number;
+  monthlyPayment: number;
   createdAt: Date;
   updatedAt: Date;
 }

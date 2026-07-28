@@ -12,6 +12,35 @@ const debtSchema = new Schema<IDebt>(
     dueDay: { type: Number, required: true, min: 1, max: 31 },
     lender: { type: String, required: true },
     isCompleted: { type: Boolean, required: true, default: false },
+    name: { type: String, required: true, default: function (this: IDebt) { return this.title; } },
+    originalAmount: {
+      type: Number,
+      required: true,
+      default: function (this: IDebt) {
+        return this.totalAmount;
+      },
+    },
+    currentBalance: {
+      type: Number,
+      required: true,
+      default: function (this: IDebt) {
+        return this.remainingAmount;
+      },
+    },
+    interestPercent: {
+      type: Number,
+      required: true,
+      default: function (this: IDebt) {
+        return this.interestRate;
+      },
+    },
+    minPayment: {
+      type: Number,
+      required: true,
+      default: function (this: IDebt) {
+        return this.monthlyPayment;
+      },
+    },
   },
   {
     timestamps: true,
@@ -20,7 +49,7 @@ const debtSchema = new Schema<IDebt>(
 
 // Delete the model if it exists to force a schema update
 if (models.Debt) {
-  delete (mongoose as any).models.Debt;
+  mongoose.deleteModel('Debt');
 }
 
 const Debt: Model<IDebt> = mongoose.model<IDebt>('Debt', debtSchema);

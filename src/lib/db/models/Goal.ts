@@ -14,6 +14,14 @@ const goalSchema = new Schema<IGoal>(
     isCompleted: { type: Boolean, required: true, default: false },
     lastProcessedMonth: { type: Number },
     lastProcessedYear: { type: Number },
+    name: { type: String, required: true, default: function (this: IGoal) { return this.title; } },
+    currentSaved: {
+      type: Number,
+      required: true,
+      default: function (this: IGoal) {
+        return this.savedAmount;
+      },
+    },
   },
   {
     timestamps: true,
@@ -22,7 +30,7 @@ const goalSchema = new Schema<IGoal>(
 
 // Delete the model if it exists to force a schema update
 if (models.Goal) {
-  delete (mongoose as any).models.Goal;
+  mongoose.deleteModel('Goal');
 }
 
 const Goal: Model<IGoal> = mongoose.model<IGoal>('Goal', goalSchema);
