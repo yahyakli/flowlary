@@ -1,5 +1,12 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Developer onboarding
+
+1. Copy `.env.example` to `.env.local` and replace the placeholders with your local MongoDB, Auth.js, and Groq credentials.
+2. Install dependencies with `npm install`.
+3. Start the development server with `npm run dev`.
+4. Run the test suite with `npm test`.
+
 ## Getting Started
 
 First, run the development server:
