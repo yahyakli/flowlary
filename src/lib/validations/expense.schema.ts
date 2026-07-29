@@ -3,8 +3,22 @@ import { ExpenseCategory } from '../db/types/Expense';
 
 export const expenseSchema = z.object({
   date: z.preprocess(
-    (val) => (val === '' || val === null || val === undefined ? undefined : new Date(val)),
-    z.date()
+    (val) => {
+      if (val === '' || val === null || val === undefined) {
+        return undefined;
+      }
+
+      if (val instanceof Date) {
+        return val;
+      }
+
+      if (typeof val === 'string' || typeof val === 'number') {
+        return new Date(val);
+      }
+
+      return val;
+    },
+    z.date().optional()
   ),
   category: z.nativeEnum(ExpenseCategory),
   description: z.string().min(1, 'Description is required'),

@@ -195,13 +195,13 @@ export default function GoalsPage() {
                 const remaining = Math.max(0, goal.targetAmount - goal.currentSaved);
 
                 return (
-                  <div key={id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/40">
-                    <div className="flex items-start justify-between gap-4">
+                  <div key={id} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                       <div>
                         <p className="text-base font-semibold text-slate-900 dark:text-slate-50">{goal.title}</p>
                         <p className="mt-1 text-sm text-slate-500">{formatCurrency(goal.currentSaved)} of {formatCurrency(goal.targetAmount)}</p>
                       </div>
-                      <div className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-700 shadow-sm dark:bg-slate-900 dark:text-slate-300">
+                      <div className="self-start rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-700 shadow-sm dark:bg-slate-900 dark:text-slate-300">
                         {progress.toFixed(0)}%
                       </div>
                     </div>

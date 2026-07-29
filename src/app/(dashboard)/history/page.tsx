@@ -80,9 +80,11 @@ export default function HistoryPage() {
   const { chartData, sortedCycles, globalStats } = useMemo(() => {
     // Group expenses by year-month
     const expensesByMonth = expenses.reduce((acc, exp) => {
-      const key = `${exp.year}-${exp.month}`;
+      const year = exp.year ?? new Date(exp.createdAt ?? Date.now()).getFullYear();
+      const month = exp.month ?? new Date(exp.createdAt ?? Date.now()).getMonth() + 1;
+      const key = `${year}-${month}`;
       if (!acc[key]) {
-        acc[key] = { year: exp.year, month: exp.month, total: 0, count: 0 };
+        acc[key] = { year, month, total: 0, count: 0 };
       }
       acc[key].total += exp.amount;
       acc[key].count += 1;
@@ -172,7 +174,7 @@ export default function HistoryPage() {
         const headers = ["Date", "Title", "Category", "Amount", "Type", "Note"];
         const rows = expenses.map((e) => [
           new Date(e.createdAt || "").toLocaleDateString(),
-          `"${e.title.replace(/"/g, '""')}"`,
+          `"${(e.title ?? "").replace(/"/g, '""')}"`,
           e.category,
           e.amount,
           e.type,

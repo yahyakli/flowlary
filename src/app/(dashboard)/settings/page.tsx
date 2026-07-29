@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { User, Shield, LogOut, ChevronRight, Lock, Eye, EyeOff } from "lucide-react";
+import { useEffect, useState } from "react";
+import { User, Shield, LogOut, ChevronRight, Lock, Eye, EyeOff, MoonStar, Sun } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateProfileSchema, UpdateProfileSchema, updatePasswordSchema, UpdatePasswordSchema } from "@/lib/validations/user.schema";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { buildThemeCookie } from "@/lib/theme";
 
 export default function SettingsPage() {
   const { data: session, update: updateSession } = useSession();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -18,6 +20,20 @@ export default function SettingsPage() {
   
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const currentTheme = resolvedTheme || theme;
+  const isDark = currentTheme === "dark";
+
+  const toggleTheme = () => {
+    const nextTheme = isDark ? "light" : "dark";
+    setTheme(nextTheme);
+    document.cookie = buildThemeCookie(nextTheme);
+  };
 
   const {
     register: registerProfile,
@@ -119,7 +135,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         {/* Navigation Sidebar */}
         <div className="space-y-2">
           <button
@@ -160,9 +176,27 @@ export default function SettingsPage() {
         </div>
 
         {/* Settings Content */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-900/40">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Appearance</p>
+                <h3 className="mt-2 text-lg font-bold text-slate-900 dark:text-slate-50">Dark mode</h3>
+                <p className="mt-1 text-sm text-slate-500">Switch between light and dark themes and keep the preference across visits.</p>
+              </div>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="inline-flex items-center justify-between gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+                aria-label="Toggle dark mode"
+              >
+                {mounted ? (isDark ? <Sun className="size-4" /> : <MoonStar className="size-4" />) : <MoonStar className="size-4" />}
+                <span>{mounted ? (isDark ? "Switch to light" : "Switch to dark") : "Theme"}</span>
+              </button>
+            </div>
+          </div>
           {activeTab === 'profile' ? (
-            <form onSubmit={handleProfileSubmit(onProfileSubmit)} className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <form onSubmit={handleProfileSubmit(onProfileSubmit)} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900/40">
               <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50">Profile Information</h3>
               <p className="mt-1 text-sm text-slate-500">Update your public profile details.</p>
 
@@ -210,7 +244,7 @@ export default function SettingsPage() {
               </div>
             </form>
           ) : (
-            <form onSubmit={handlePasswordSubmit(onPasswordSubmit)} className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900/40">
+            <form onSubmit={handlePasswordSubmit(onPasswordSubmit)} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900/40">
               <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50">Account Security</h3>
               <p className="mt-1 text-sm text-slate-500">Manage your password and security preferences.</p>
 

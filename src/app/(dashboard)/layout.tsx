@@ -12,7 +12,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <Sidebar />
         </aside>
 
-        <main className="flex-1 rounded-3xl border border-slate-300 bg-white p-4 shadow-xl dark:border-white/10 dark:bg-slate-950/80 dark:shadow-slate-950/30 lg:p-6">
+        <main className="flex-1 min-w-0 rounded-3xl border border-slate-300 bg-white p-4 shadow-xl dark:border-white/10 dark:bg-slate-950/80 dark:shadow-slate-950/30 lg:p-6">
           {children}
         </main>
       </div>

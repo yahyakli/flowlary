@@ -171,7 +171,7 @@ export default function DebtsPage() {
                     key={id}
                     className="group rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900/40"
                   >
-                    <div className="mb-6 flex items-start justify-between">
+                    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <h4 className="text-lg font-bold text-slate-900 dark:text-slate-50">{debt.title}</h4>
                         <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
@@ -191,7 +191,7 @@ export default function DebtsPage() {
                           )}
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-left sm:text-right">
                         <p className="text-lg font-black text-slate-900 dark:text-slate-50">
                           {formatCurrencyMock(debt.currentBalance)}
                         </p>

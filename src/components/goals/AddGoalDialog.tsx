@@ -81,9 +81,10 @@ export function AddGoalDialog({ goal, trigger }: GoalDialogProps) {
   } = useForm<z.input<typeof goalSchema>, any, GoalSchema>({
     resolver: zodResolver(goalSchema),
     defaultValues: {
-      title: goal?.title || "",
+      name: goal?.title || "",
       targetAmount: goal?.targetAmount || 0,
-      savedAmount: goal?.savedAmount || 0,
+      currentSaved: goal?.savedAmount || 0,
+      deadline: goal?.deadline ? new Date(goal.deadline) : new Date(),
       monthlyContribution: goal?.monthlyContribution || 0,
       icon: goal?.icon || "target",
       color: goal?.color || "#4f46e5",
@@ -94,9 +95,10 @@ export function AddGoalDialog({ goal, trigger }: GoalDialogProps) {
   useMemo(() => {
     if (open) {
       reset({
-        title: goal?.title || "",
+        name: goal?.title || "",
         targetAmount: goal?.targetAmount || 0,
-        savedAmount: goal?.savedAmount || 0,
+        currentSaved: goal?.savedAmount || 0,
+        deadline: goal?.deadline ? new Date(goal.deadline) : new Date(),
         monthlyContribution: goal?.monthlyContribution || 0,
         icon: goal?.icon || "target",
         color: goal?.color || "#4f46e5",
@@ -107,7 +109,7 @@ export function AddGoalDialog({ goal, trigger }: GoalDialogProps) {
   const selectedIcon = watch("icon");
   const selectedColor = watch("color");
   const targetAmount = watch("targetAmount");
-  const savedAmount = watch("savedAmount");
+  const savedAmount = watch("currentSaved");
   const monthlyContribution = watch("monthlyContribution");
 
   // Calculate estimated deadline with safety checks
@@ -133,7 +135,7 @@ export function AddGoalDialog({ goal, trigger }: GoalDialogProps) {
   }, [targetAmount, savedAmount, monthlyContribution]);
 
   const onSubmit = async (data: GoalSchema) => {
-    if (!estimatedDeadline && data.targetAmount > data.savedAmount) {
+    if (!estimatedDeadline && data.targetAmount > data.currentSaved) {
       toast.error("Please set a monthly contribution to estimate your goal date.");
       return;
     }
@@ -217,12 +219,12 @@ export function AddGoalDialog({ goal, trigger }: GoalDialogProps) {
                   Goal Title
                 </Label>
                 <Input
-                  id="title"
+                  id="name"
                   placeholder="e.g., New Laptop, Vacation..."
                   className="h-10 rounded-xl border-slate-200 bg-slate-50 px-4 font-bold dark:border-slate-800 dark:bg-slate-900 text-sm"
-                  {...register("title")}
+                  {...register("name")}
                 />
-                {errors.title && <p className="text-[10px] font-bold text-rose-500">{errors.title.message}</p>}
+                {errors.name && <p className="text-[10px] font-bold text-rose-500">{errors.name.message}</p>}
               </div>
 
               {/* Amounts Row */}
@@ -241,15 +243,15 @@ export function AddGoalDialog({ goal, trigger }: GoalDialogProps) {
                   {errors.targetAmount && <p className="text-[10px] font-bold text-rose-500">{errors.targetAmount.message}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="savedAmount" className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  <Label htmlFor="currentSaved" className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Initial (MAD)
                   </Label>
                   <Input
-                    id="savedAmount"
+                    id="currentSaved"
                     type="number"
                     step="0.01"
                     className="h-10 rounded-xl border-slate-200 bg-slate-50 px-4 font-bold dark:border-slate-800 dark:bg-slate-900 text-sm"
-                    {...register("savedAmount", { valueAsNumber: true })}
+                    {...register("currentSaved", { valueAsNumber: true })}
                   />
                 </div>
               </div>

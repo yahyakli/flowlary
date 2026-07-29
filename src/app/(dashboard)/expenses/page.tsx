@@ -87,11 +87,14 @@ export default function ExpensesPage() {
   const currentYear = now.getFullYear();
 
   const filteredExpenses = useMemo(() => {
-    return expenses.filter(
-      (t) =>
-        t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const normalizedSearch = searchTerm.toLowerCase();
+
+    return expenses.filter((t) => {
+      const title = t.title?.toLowerCase() ?? "";
+      const category = t.category?.toLowerCase() ?? "";
+
+      return title.includes(normalizedSearch) || category.includes(normalizedSearch);
+    });
   }, [expenses, searchTerm]);
 
   // Filter expenses for current month stats
@@ -255,8 +258,14 @@ export default function ExpensesPage() {
             </div>
           </div>
 
-          <RecentTransactions 
-            transactions={filteredExpenses.slice(0, 20)} 
+          <RecentTransactions
+            transactions={filteredExpenses.slice(0, 20).map((transaction) => ({
+              ...transaction,
+              title: transaction.title ?? "Untitled expense",
+              category: transaction.category ?? "miscellaneous",
+              type: transaction.type ?? "variable",
+              date: transaction.date ? new Date(transaction.date).toISOString() : undefined,
+            }))}
             hideGainIndicators={true}
             onViewAll={() => setIsModalOpen(true)}
           />

@@ -138,7 +138,7 @@ function DashboardPage() {
 
   return (
     <section className="space-y-8">
-      <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+      <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-900/50">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-600">Finance snapshot</p>
@@ -166,7 +166,7 @@ function DashboardPage() {
           </label>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/60">
               <p className="text-sm text-slate-500">{stat.label}</p>
@@ -183,8 +183,8 @@ function DashboardPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+      <div className="grid gap-6 xl:grid-cols-2">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-900/50">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Category breakdown</h2>

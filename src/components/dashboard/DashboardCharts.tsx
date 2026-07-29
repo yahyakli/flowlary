@@ -18,7 +18,7 @@ export function CategoryBreakdownChart({ data }: { data: Array<{ name: string; v
               <Cell key={entry.name} fill={entry.color} />
             ))}
           </Pie>
-          <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
+          <Tooltip formatter={(value: any) => `$${Number(value ?? 0).toLocaleString()}`} />
         </PieChart>
       </ResponsiveContainer>
     </div>
@@ -41,7 +41,7 @@ export function MonthlyTrendChart({ data }: { data: Array<{ month: string; total
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
           <XAxis dataKey="month" tickLine={false} axisLine={false} />
           <YAxis tickLine={false} axisLine={false} />
-          <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
+          <Tooltip formatter={(value: any) => `$${Number(value ?? 0).toLocaleString()}`} />
           <Bar dataKey="totalIncome" fill="#f97316" radius={[8, 8, 0, 0]} />
           <Bar dataKey="totalExpenses" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
         </BarChart>

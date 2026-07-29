@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       system: buildChatSystemPrompt(userContext),
       messages: [{ role: 'user', content: parsed.message }],
       temperature: 0.2,
-      maxTokens: 400,
+      maxOutputTokens: 400,
     })
 
     return result.toTextStreamResponse()
