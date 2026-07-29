@@ -62,6 +62,34 @@ vi.mock('../db/models/User', () => ({ User: { updateOne: mocks.updateOne } }));
 vi.mock('../db/models/LedgerEntry', () => ({
   LedgerEntry: { findOne: mocks.findOne, create: mocks.create },
 }));
+vi.mock('../db/models/MonthlySnapshot', () => ({
+  MonthlySnapshot: {
+    findOneAndUpdate: vi.fn().mockReturnValue({
+      exec: vi.fn().mockResolvedValue({
+        userId: new mongoose.Types.ObjectId(),
+        month: '2026-07',
+        totalIncome: 0,
+        totalExpenses: 0,
+        netBalance: 0,
+        expenseByCategory: {},
+        savingsRate: 0,
+        updatedAt: new Date(),
+      }),
+    }),
+  },
+}));
+vi.mock('./updateSnapshot', () => ({
+  updateMonthlySnapshot: vi.fn().mockResolvedValue({
+    userId: new mongoose.Types.ObjectId(),
+    month: '2026-07',
+    totalIncome: 0,
+    totalExpenses: 0,
+    netBalance: 0,
+    expenseByCategory: {},
+    savingsRate: 0,
+    updatedAt: new Date(),
+  }),
+}));
 
 import { postLedgerEntry } from './postEntry';
 

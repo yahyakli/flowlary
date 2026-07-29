@@ -2,6 +2,7 @@ import mongoose, { type ClientSession } from 'mongoose';
 import connectDB from '../db/mongoose';
 import { LedgerEntry, type ILedgerEntry } from '../db/models/LedgerEntry';
 import { User } from '../db/models/User';
+import { updateMonthlySnapshot } from './updateSnapshot';
 
 export type LedgerEntryInput = Omit<
   ILedgerEntry,
@@ -34,7 +35,10 @@ export async function postLedgerEntry(
 
   if (options.session) {
     try {
-      return await createLedgerEntry(userId, entryInput, options.session);
+      const createdEntry = await createLedgerEntry(userId, entryInput, options.session);
+      // Update snapshot within the same transaction
+      await updateMonthlySnapshot(userId, entryInput.date, options.session);
+      return createdEntry;
     } catch (error) {
       if (transactionsAreUnsupported(error)) {
         // TODO: Require a MongoDB replica set for ledger posting; standalone MongoDB cannot prevent lost updates.
@@ -52,6 +56,8 @@ export async function postLedgerEntry(
 
     await session.withTransaction(async () => {
       createdEntry = await createLedgerEntry(userId, entryInput, session);
+      // Update snapshot within the transaction
+      await updateMonthlySnapshot(userId, entryInput.date, session);
     });
 
     if (!createdEntry) {

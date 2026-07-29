@@ -66,6 +66,34 @@ vi.mock('mongoose', async (importOriginal) => {
   };
 });
 vi.mock('../db/models/LedgerEntry', () => ({ LedgerEntry: { findOne: mocks.findOne } }));
+vi.mock('../db/models/MonthlySnapshot', () => ({
+  MonthlySnapshot: {
+    findOneAndUpdate: vi.fn().mockReturnValue({
+      exec: vi.fn().mockResolvedValue({
+        userId: new mongoose.Types.ObjectId(),
+        month: '2026-07',
+        totalIncome: 0,
+        totalExpenses: 0,
+        netBalance: 0,
+        expenseByCategory: {},
+        savingsRate: 0,
+        updatedAt: new Date(),
+      }),
+    }),
+  },
+}));
+vi.mock('./updateSnapshot', () => ({
+  updateMonthlySnapshot: vi.fn().mockResolvedValue({
+    userId: new mongoose.Types.ObjectId(),
+    month: '2026-07',
+    totalIncome: 0,
+    totalExpenses: 0,
+    netBalance: 0,
+    expenseByCategory: {},
+    savingsRate: 0,
+    updatedAt: new Date(),
+  }),
+}));
 vi.mock('./postEntry', () => ({ postLedgerEntry: mocks.postLedgerEntry }));
 
 import { deleteLedgerEntry, editLedgerEntry } from './corrections';
