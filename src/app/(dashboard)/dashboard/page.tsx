@@ -1,304 +1,227 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import Link from "next/link";
-import { SummaryCards } from "@/components/dashboard/SummaryCards";
-import { SpendingChart } from "@/components/dashboard/SpendingChart";
-import { BudgetDonut } from "@/components/dashboard/BudgetDonut";
-import { HealthScore } from "@/components/dashboard/HealthScore";
-import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
-import { SavingsGoalsProgress } from "@/components/dashboard/SavingsGoalsProgress";
-import { BudgetOverview } from "@/components/dashboard/BudgetOverview";
-import { SetSalaryDialog } from "@/components/dashboard/SetSalaryDialog";
-import { AddIncomeDialog } from "@/components/dashboard/AddIncomeDialog";
-import { useSalaryStore } from "@/store/useSalaryStore";
-import { useExpenseStore } from "@/store/useExpenseStore";
-import { useGoalStore } from "@/store/useGoalStore";
-import { useDebtStore } from "@/store/useDebtStore";
-import { useIncomeStore } from "@/store/useIncomeStore";
+import { useEffect, useMemo, useState } from "react";
+import { CategoryBreakdownChart, MonthlyTrendChart } from "@/components/dashboard/DashboardCharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { MonthlySpending, CategoryBreakdown } from "@/lib/mock-data";
-import { 
-  calculateFinancialSummary, 
-  calculateHealthMetrics 
-} from "@/lib/utils/calculations";
-import { Plus, Coins } from "lucide-react";
+import { formatCurrency } from "@/lib/utils/currency";
 
-// Category colors for the donut chart
-const CATEGORY_COLORS: Record<string, string> = {
-  housing: "#06b6d4",
-  food: "#10b981",
-  transportation: "#8b5cf6",
-  utilities: "#f59e0b",
-  subscriptions: "#ec4899",
-  entertainment: "#f97316",
-  healthcare: "#3b82f6",
-  education: "#0ea5e9",
-  insurance: "#14b8a6",
-  personal: "#a855f7",
-  debt: "#ef4444",
-  savings: "#22c55e",
-  miscellaneous: "#64748b",
-};
+interface DashboardSummary {
+  month: string;
+  totalIncome: number;
+  totalExpenses: number;
+  netBalance: number;
+  expenseByCategory: Record<string, number>;
+  savingsRate: number;
+}
 
-function DashboardSkeleton() {
-  return (
-    <section className="space-y-10">
-      {/* Hero Skeleton */}
-      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 shadow-2xl sm:p-10">
-        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-4">
-            <Skeleton className="h-6 w-40 rounded-full bg-white/10" />
-            <Skeleton className="h-12 w-64 bg-white/10" />
-            <Skeleton className="h-6 w-96 bg-white/10" />
-          </div>
-          <div className="grid w-full grid-cols-1 gap-4 sm:w-auto sm:grid-cols-3">
-            <Skeleton className="h-16 w-full rounded-2xl bg-white/10" />
-            <Skeleton className="h-16 w-full rounded-2xl bg-white/10" />
-            <Skeleton className="h-16 w-full rounded-2xl bg-white/10" />
-          </div>
-        </div>
-      </div>
+interface TrendPoint {
+  month: string;
+  totalIncome: number;
+  totalExpenses: number;
+  netBalance: number;
+}
 
-      {/* Summary Cards Skeleton */}
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="rounded-[1.5rem] border border-slate-300 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/50">
-            <div className="flex items-start justify-between">
-              <Skeleton className="size-12 rounded-2xl" />
-              <Skeleton className="h-6 w-20 rounded-full" />
-            </div>
-            <div className="mt-4 space-y-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-9 w-32" />
-              <Skeleton className="h-3 w-40" />
-            </div>
-          </div>
-        ))}
-      </div>
+function monthOptions() {
+  const now = new Date();
+  const options: string[] = [];
+  for (let i = 0; i < 12; i += 1) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleDateString("en", { month: "short", year: "numeric" });
+    options.push(`${value}:${label}`);
+  }
+  return options;
+}
 
-      {/* Budget Overview Skeleton */}
-      <div>
-        <Skeleton className="mb-6 h-6 w-32" />
-        <div className="rounded-[1.5rem] border border-slate-300 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/50">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-4 w-56" />
-            </div>
-            <Skeleton className="h-8 w-24 rounded-full" />
-          </div>
-          <Skeleton className="mb-2 h-4 w-full rounded-full" />
-          <div className="grid gap-4 sm:grid-cols-2">
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-20 rounded-2xl" />
+function DashboardPage() {
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [trend, setTrend] = useState<TrendPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const months = monthOptions();
+    const latestMonth = months[0]?.split(":")[0] ?? "";
+    setSelectedMonth(latestMonth);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedMonth) return;
+
+    async function loadDashboard() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const [summaryResponse, trendResponse] = await Promise.all([
+          fetch(`/api/dashboard?month=${selectedMonth}`),
+          fetch(`/api/dashboard/trend?months=6`),
+        ]);
+
+        if (!summaryResponse.ok || !trendResponse.ok) {
+          throw new Error("Unable to load dashboard data.");
+        }
+
+        const summaryData = await summaryResponse.json();
+        const trendData = await trendResponse.json();
+
+        setSummary(summaryData);
+        setTrend(trendData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unable to load dashboard data.");
+        setSummary(null);
+        setTrend([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboard();
+  }, [selectedMonth]);
+
+  const categoryData = useMemo(() => {
+    if (!summary?.expenseByCategory) return [];
+
+    return Object.entries(summary.expenseByCategory)
+      .map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value,
+        color: ["#f97316", "#8b5cf6", "#14b8a6", "#0ea5e9", "#64748b"][Math.abs(name.length) % 5],
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [summary]);
+
+  const monthOptionsList = monthOptions();
+
+  const stats = [
+    {
+      label: "Total Income",
+      value: summary ? formatCurrency(summary.totalIncome) : "—",
+      hint: "Income captured for the selected month",
+    },
+    {
+      label: "Total Expenses",
+      value: summary ? formatCurrency(summary.totalExpenses) : "—",
+      hint: "Spending for the selected month",
+    },
+    {
+      label: "Net Balance",
+      value: summary ? formatCurrency(summary.netBalance) : "—",
+      hint: "Income minus expenses",
+    },
+    {
+      label: "Savings Rate",
+      value: summary ? `${Math.round(summary.savingsRate * 100)}%` : "—",
+      hint: "Share of income retained",
+    },
+  ];
+
+  if (loading && !summary) {
+    return (
+      <section className="space-y-8">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+          <Skeleton className="h-8 w-48" />
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {[1, 2, 3, 4].map((item) => (
+              <Skeleton key={item} className="h-24 rounded-2xl" />
             ))}
           </div>
         </div>
-      </div>
-
-      {/* Charts & Transactions Skeleton */}
-      <div className="grid gap-8 lg:grid-cols-2">
-        <Skeleton className="h-[400px] rounded-[1.5rem]" />
-        <Skeleton className="h-[400px] rounded-[1.5rem]" />
-      </div>
-    </section>
-  );
-}
-
-export default function DashboardPage() {
-  const { salary, initialBalance, fetchSalary, isLoading: salaryLoading } = useSalaryStore();
-  const { expenses, fetchExpenses, isLoading: expensesLoading } = useExpenseStore();
-  const { goals, fetchGoals, isLoading: goalsLoading } = useGoalStore();
-  const { debts, fetchDebts, isLoading: debtsLoading } = useDebtStore();
-  // useIncomeStore hook for extra earnings
-  const { incomes, fetchIncomes, isLoading: incomesLoading } = useIncomeStore();
-
-  const now = useMemo(() => new Date(), []);
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
-
-  // Fetch all data on mount
-  useEffect(() => {
-    fetchSalary();
-    fetchExpenses();
-    fetchGoals();
-    fetchDebts();
-    fetchIncomes();
-  }, [fetchSalary, fetchExpenses, fetchGoals, fetchDebts, fetchIncomes]);
-
-  // Compute the financial summary from real data
-  const summary = useMemo(() => {
-    return calculateFinancialSummary(
-      salary,
-      initialBalance,
-      incomes,
-      expenses,
-      goals,
-      debts,
-      currentMonth,
-      currentYear
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Skeleton className="h-[320px] rounded-[2rem]" />
+          <Skeleton className="h-[320px] rounded-[2rem]" />
+        </div>
+      </section>
     );
-  }, [salary, initialBalance, incomes, expenses, goals, debts, currentMonth, currentYear]);
-
-  // Compute category breakdown for the donut chart from real expenses
-  const categoryBreakdown: CategoryBreakdown[] = useMemo(() => {
-    const breakdown: Record<string, number> = {};
-
-    expenses
-      .filter(e => e.month === currentMonth && e.year === currentYear)
-      .forEach((ex) => {
-        const cat = ex.category;
-        breakdown[cat] = (breakdown[cat] || 0) + ex.amount;
-      });
-
-    return Object.entries(breakdown)
-      .map(([category, amount]) => ({
-        category: category.charAt(0).toUpperCase() + category.slice(1),
-        amount,
-        color: CATEGORY_COLORS[category.toLowerCase()] || "#64748b",
-      }))
-      .sort((a, b) => b.amount - a.amount);
-  }, [expenses, currentMonth, currentYear]);
-
-  // Compute monthly spending data for the last 6 months from real expenses
-  const monthlySpending: MonthlySpending[] = useMemo(() => {
-    const now = new Date();
-    const months: MonthlySpending[] = [];
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const month = d.getMonth() + 1; // 1-12
-      const year = d.getFullYear();
-
-      const total = expenses
-        .filter((e) => e.month === month && e.year === year)
-        .reduce((acc, e) => acc + e.amount, 0);
-
-      months.push({
-        month: monthNames[d.getMonth()],
-        amount: total,
-      });
-    }
-
-    return months;
-  }, [expenses]);
-
-  // Compute health metrics from real data
-  const healthMetrics = useMemo(() => {
-    return calculateHealthMetrics(summary, goals);
-  }, [summary, goals]);
-
-  // Recent transactions: map expenses for the RecentTransactions component
-  const recentTransactions = useMemo(() => {
-    return expenses
-      .filter(e => e.month === currentMonth && e.year === currentYear)
-      .slice(0, 8)
-      .map((e) => ({
-      id: (e._id as any)?.toString(),
-      _id: e._id,
-      title: e.title,
-      category: e.category,
-      amount: -e.amount, // negative for expenses
-      type: e.type,
-      createdAt: e.createdAt,
-      note: e.note,
-      month: e.month,
-      year: e.year,
-      isRecurring: e.isRecurring,
-      tags: e.tags,
-      dueDay: e.dueDay,
-    }));
-  }, [expenses]);
-
-  const isInitialLoading =
-    salaryLoading && expensesLoading && goalsLoading && debtsLoading && incomesLoading;
-
-  if (isInitialLoading && expenses.length === 0 && goals.length === 0) {
-    return <DashboardSkeleton />;
   }
 
   return (
-    <section className="space-y-10">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 shadow-2xl sm:p-10">
-        {/* Background orbs */}
-        <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-cyan-500/20 blur-[100px]" />
-        <div className="absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-violet-600/20 blur-[100px]" />
-        <div className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-[80px]" />
-
-        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full bg-cyan-400/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-cyan-400 ring-1 ring-cyan-400/20">
-              <span className="size-2 rounded-full bg-cyan-400 animate-pulse" />
-              Dashboard Overview
-            </div>
-            <h2 className="text-4xl font-black tracking-tight text-white sm:text-5xl">
-              Your Finance Hub
-            </h2>
-            <p className="max-w-xl text-lg text-slate-300">
-              Personalized insights and proactive advice for your current salary cycle.
+    <section className="space-y-8">
+      <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-600">Finance snapshot</p>
+            <h1 className="mt-2 text-3xl font-semibold text-slate-900 dark:text-slate-50">Dashboard overview</h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
+              Review the selected month’s performance and the last six months of momentum.
             </p>
           </div>
-
-          <div className="grid w-full grid-cols-1 gap-4 sm:w-auto sm:grid-cols-3">
-            <SetSalaryDialog />
-            <AddIncomeDialog />
-
-            <Link
-              href="/expenses"
-              className="group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white px-5 py-3 transition-all hover:border-emerald-500/50 hover:bg-emerald-50/50 dark:border-slate-800 dark:bg-slate-900/50 dark:hover:border-emerald-500/30 dark:hover:bg-emerald-900/20"
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+            Month
+            <select
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+              className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm shadow-sm outline-none ring-0 focus:border-brand-400 dark:border-slate-700 dark:bg-slate-800"
             >
-              <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 transition-colors group-hover:bg-emerald-500 group-hover:text-white dark:bg-emerald-500/10 dark:text-emerald-400">
-                <Plus className="size-5 transition-transform group-hover:rotate-90" />
+              {monthOptionsList.map((entry) => {
+                const [value, label] = entry.split(":");
+                return (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {stats.map((stat) => (
+            <div key={stat.label} className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+              <p className="text-sm text-slate-500">{stat.label}</p>
+              <p className="mt-3 text-2xl font-semibold text-slate-900 dark:text-slate-50">{stat.value}</p>
+              <p className="mt-2 text-xs text-slate-500">{stat.hint}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {error ? (
+        <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Category breakdown</h2>
+              <p className="mt-1 text-sm text-slate-500">Spending distribution for {selectedMonth}</p>
+            </div>
+          </div>
+          <div className="mt-4">
+            {categoryData.length > 0 ? (
+              <CategoryBreakdownChart data={categoryData} />
+            ) : (
+              <div className="flex h-[280px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50/60 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40">
+                No spending categories recorded for this month yet.
               </div>
-              <div className="text-left">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Spending</p>
-                <p className="text-sm font-black text-slate-900 dark:text-white">Add Expense</p>
-              </div>
-            </Link>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Summary Cards */}
-      <SummaryCards summary={summary} />
-
-      {/* Section: Budget Overview */}
-      <div>
-        <h2 className="mb-6 text-xl font-bold text-slate-900 dark:text-slate-50">Budget Status</h2>
-        <BudgetOverview summary={summary} />
-      </div>
-
-      {/* Section: Spending Trends & Category Breakdown */}
-      <div className="grid gap-8 lg:grid-cols-2">
-        <div>
-          <h2 className="mb-6 text-xl font-bold text-slate-900 dark:text-slate-50">Spending Trends</h2>
-          <SpendingChart data={monthlySpending} />
-        </div>
-        <div>
-          <h2 className="mb-6 text-xl font-bold text-slate-900 dark:text-slate-50">Expense Breakdown</h2>
-          {categoryBreakdown.length > 0 ? (
-            <BudgetDonut data={categoryBreakdown} />
-          ) : (
-            <div className="flex h-[400px] items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 dark:border-slate-700">
-              <p className="text-sm text-slate-500">Add expenses to see your category breakdown</p>
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Last 6 months</h2>
+              <p className="mt-1 text-sm text-slate-500">Income and expenses over time</p>
             </div>
-          )}
+          </div>
+          <div className="mt-4">
+            {trend.length > 0 ? (
+              <MonthlyTrendChart data={trend} />
+            ) : (
+              <div className="flex h-[280px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50/60 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40">
+                No historical snapshot data available yet.
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* Section: Transactions */}
-      <div>
-        <RecentTransactions transactions={recentTransactions} />
-      </div>
-
-      {/* Section: Goals & Health (side by side on large screens) */}
-      <div className="grid gap-8 lg:grid-cols-2">
-        <SavingsGoalsProgress goals={goals} />
-        <HealthScore metrics={healthMetrics} />
       </div>
     </section>
   );
 }
+
+export default DashboardPage;

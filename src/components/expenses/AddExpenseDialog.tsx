@@ -19,13 +19,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Plus,
   AlignLeft,
   CircleDollarSign,
@@ -33,42 +26,18 @@ import {
   Calendar,
   FileText,
   ArrowRight,
-  Pencil,
   X,
-  Home,
-  Zap,
-  Car,
-  Utensils,
-  HeartPulse,
-  Shield,
-  Film,
-  GraduationCap,
-  PiggyBank,
-  CreditCard,
-  Wifi,
-  LineChart,
-  User,
-  MoreHorizontal
+  Search,
+  Clock3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IExpense } from "@/lib/db/types";
+import { buildCategorySuggestions, getCategoryLabel } from "@/lib/utils/expenseCategories";
 
-/* ─── Category config ─────────────────────────────────────────── */
-const categoryConfig: Record<ExpenseCategory, { icon: React.ElementType; label: string }> = {
-  [ExpenseCategory.Housing]:       { icon: Home, label: "Housing" },
-  [ExpenseCategory.Utilities]:     { icon: Zap, label: "Utilities" },
-  [ExpenseCategory.Transportation]:{ icon: Car, label: "Transportation" },
-  [ExpenseCategory.Food]:          { icon: Utensils, label: "Food" },
-  [ExpenseCategory.Healthcare]:    { icon: HeartPulse, label: "Healthcare" },
-  [ExpenseCategory.Insurance]:     { icon: Shield, label: "Insurance" },
-  [ExpenseCategory.Entertainment]: { icon: Film, label: "Entertainment" },
-  [ExpenseCategory.Education]:     { icon: GraduationCap, label: "Education" },
-  [ExpenseCategory.Savings]:       { icon: PiggyBank, label: "Savings" },
-  [ExpenseCategory.Debt]:          { icon: CreditCard, label: "Debt" },
-  [ExpenseCategory.Subscriptions]: { icon: Wifi, label: "Subscriptions" },
-  [ExpenseCategory.Investment]:    { icon: LineChart, label: "Investment" },
-  [ExpenseCategory.Personal]:      { icon: User, label: "Personal" },
-  [ExpenseCategory.Miscellaneous]: { icon: MoreHorizontal,  label: "Other" },
+type ExpenseFormValues = ExpenseSchema & {
+  type?: "variable" | "fixed";
+  dueDay?: number;
+  isRecurring?: boolean;
 };
 
 /* ─── Field label ─────────────────────────────────────────────── */
@@ -104,6 +73,8 @@ interface AddExpenseDialogProps {
 
 export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false);
+  const [categoryInput, setCategoryInput] = useState("");
+  const [recentCategories, setRecentCategories] = useState<ExpenseCategory[]>([]);
   const addExpense = useExpenseStore((state) => state.addExpense);
   const updateExpense = useExpenseStore((state) => state.updateExpense);
   const isLoading = useExpenseStore((state) => state.isLoading);
@@ -117,18 +88,16 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
     watch,
     reset,
     formState: { errors },
-  } = useForm<ExpenseSchema>({
+  } = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema) as any,
     defaultValues: {
-      title: "",
+      description: "",
       amount: 0,
       category: ExpenseCategory.Food,
+      notes: "",
+      date: new Date(),
       type: "variable",
       isRecurring: false,
-      month: new Date().getMonth() + 1,
-      year: new Date().getFullYear(),
-      tags: [],
-      note: "",
     },
   });
 
@@ -137,28 +106,24 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
     if (open) {
       if (expense) {
         reset({
-          title: expense.title,
+          description: expense.description ?? expense.title ?? "",
           amount: expense.amount,
           category: expense.category as ExpenseCategory,
+          notes: expense.notes ?? expense.note ?? "",
+          date: expense.date ?? new Date(),
           type: expense.type,
           isRecurring: expense.isRecurring,
-          month: expense.month,
-          year: expense.year,
-          tags: expense.tags,
-          note: expense.note || "",
           dueDay: expense.dueDay,
         });
       } else {
         reset({
-          title: "",
+          description: "",
           amount: 0,
           category: ExpenseCategory.Food,
+          notes: "",
+          date: new Date(),
           type: "variable",
           isRecurring: false,
-          month: new Date().getMonth() + 1,
-          year: new Date().getFullYear(),
-          tags: [],
-          note: "",
         });
       }
     }
@@ -167,13 +132,32 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
   const type = watch("type");
   const dueDay = watch("dueDay");
   const selectedCategory = watch("category");
-  const categoryInfo = categoryConfig[selectedCategory as ExpenseCategory] || categoryConfig[ExpenseCategory.Miscellaneous];
+  const categorySuggestions = buildCategorySuggestions(recentCategories, categoryInput);
 
-  const onSubmit = async (data: ExpenseSchema) => {
+  useEffect(() => {
+    if (!selectedCategory) return;
+    setCategoryInput(getCategoryLabel(selectedCategory as ExpenseCategory));
+  }, [selectedCategory]);
+
+  const onSubmit = async (data: ExpenseFormValues) => {
+    const nextCategory = data.category;
+    setRecentCategories((current) => {
+      const next = [nextCategory, ...current.filter((item) => item !== nextCategory)].slice(0, 5);
+      return next;
+    });
+
+    const payload = {
+      date: data.date ?? new Date(),
+      category: data.category,
+      description: data.description,
+      amount: data.amount,
+      notes: data.notes,
+    };
+
     if (isEditMode && expense?._id) {
-      await updateExpense(expense._id.toString(), data);
+      await updateExpense(expense._id.toString(), payload);
     } else {
-      await addExpense(data);
+      await addExpense(payload);
     }
     setOpen(false);
   };
@@ -271,14 +255,14 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
                   <Input
                     placeholder="What did you spend on?"
                     className="h-11 rounded-xl border-slate-200 bg-slate-50/50 px-4 text-sm font-medium transition-all focus:border-slate-900/20 focus:bg-white focus:ring-4 focus:ring-slate-900/5 dark:border-slate-800 dark:bg-slate-900/50 dark:focus:border-emerald-500/30 dark:focus:bg-slate-900 dark:focus:ring-emerald-500/5"
-                    {...register("title")}
+                    {...register("description")}
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-focus-within:opacity-100">
                     <div className="size-1.5 rounded-full bg-emerald-500" />
                   </div>
                 </div>
-                {errors.title && (
-                  <p className="px-1 text-[10px] font-bold text-rose-500">{errors.title.message}</p>
+                {errors.description && (
+                  <p className="px-1 text-[10px] font-bold text-rose-500">{errors.description.message}</p>
                 )}
               </div>
 
@@ -309,30 +293,51 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
                   <Label>
                     <FieldLabel icon={<LayoutGrid className="size-3" />}>Category</FieldLabel>
                   </Label>
-                  <Select
-                    onValueChange={(val) => setValue("category", val as ExpenseCategory, { shouldValidate: true })}
-                    value={selectedCategory}
-                  >
-                    <SelectTrigger className="h-11 w-full rounded-xl border-slate-200 bg-slate-50/50 px-3 py-5 text-sm font-semibold transition-all hover:border-slate-300 focus:bg-white focus:ring-4 focus:ring-slate-900/5 dark:border-slate-800 dark:bg-slate-900/50 dark:focus:border-emerald-500/30 dark:focus:bg-slate-900 dark:focus:ring-emerald-500/5">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-72 px-2 rounded-[1rem] border-slate-200 bg-white/95 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95">
-                      {Object.entries(categoryConfig).map(([value, { icon: Icon, label }]) => (
-                        <SelectItem
-                          key={value}
-                          value={value}
-                          className="group rounded-lg py-2 focus:bg-slate-50 dark:focus:bg-slate-900"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <span className="flex size-7 items-center justify-center rounded-md bg-slate-100 text-xs transition-colors group-focus:bg-white dark:bg-slate-800 dark:group-focus:bg-slate-700">
-                              <Icon className="size-4" />
-                            </span>
-                            <span className="font-semibold text-slate-700 dark:text-slate-300">{label}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2">
+                    <div className="group relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                      <Input
+                        value={categoryInput}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setCategoryInput(value);
+                          if (value.trim()) {
+                            const match = buildCategorySuggestions(recentCategories, value).find((category) => getCategoryLabel(category).toLowerCase() === value.trim().toLowerCase());
+                            if (match) {
+                              setValue("category", match, { shouldValidate: true, shouldDirty: true });
+                            }
+                          }
+                        }}
+                        placeholder="Search categories"
+                        className="h-11 rounded-xl border-slate-200 bg-slate-50/50 pl-9 pr-4 text-sm font-medium transition-all focus:border-slate-900/20 focus:bg-white focus:ring-4 focus:ring-slate-900/5 dark:border-slate-800 dark:bg-slate-900/50 dark:focus:border-emerald-500/30 dark:focus:bg-slate-900 dark:focus:ring-emerald-500/5"
+                      />
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                      {categorySuggestions.length > 0 ? (
+                        <div className="flex max-h-40 flex-col overflow-auto">
+                          {categorySuggestions.map((category) => {
+                            const isRecent = recentCategories.includes(category);
+                            return (
+                              <button
+                                key={category}
+                                type="button"
+                                onClick={() => {
+                                  setValue("category", category, { shouldValidate: true, shouldDirty: true });
+                                  setCategoryInput(getCategoryLabel(category));
+                                }}
+                                className="flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900"
+                              >
+                                <span>{getCategoryLabel(category)}</span>
+                                {isRecent ? <Clock3 className="size-3.5 text-slate-400" /> : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="px-3 py-2 text-sm text-slate-500">No matching category</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -374,7 +379,7 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
                   placeholder="Anything else?"
                   rows={2}
                   className="min-h-[80px] resize-none rounded-xl border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium transition-all focus:border-slate-900/20 focus:bg-white focus:ring-4 focus:ring-slate-900/5 dark:border-slate-800 dark:bg-slate-900/50 dark:focus:border-emerald-500/30 dark:focus:bg-slate-900 dark:focus:ring-emerald-500/5"
-                  {...register("note")}
+                  {...register("notes")}
                 />
               </div>
             </div>

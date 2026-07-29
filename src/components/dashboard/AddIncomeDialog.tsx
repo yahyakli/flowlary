@@ -32,9 +32,9 @@ export function AddIncomeDialog() {
   } = useForm<z.input<typeof incomeSchema>, any, IncomeSchema>({
     resolver: zodResolver(incomeSchema),
     defaultValues: {
-      title: "",
+      source: "",
       amount: 0,
-      category: "Extra",
+      notes: "",
     },
   });
 
@@ -115,13 +115,13 @@ export function AddIncomeDialog() {
                 <Tag className="size-3.5" /> Income Source
               </Label>
               <Input
-                id="title"
+                id="source"
                 placeholder="e.g., Freelance Project, Gift"
                 className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 transition-all focus:border-amber-500 focus:ring-amber-500/20 dark:border-slate-800 dark:bg-slate-900 dark:focus:border-amber-400"
-                {...register("title")}
+                {...register("source")}
               />
-              {errors.title && (
-                <p className="text-[10px] font-bold text-rose-500">{errors.title.message}</p>
+              {errors.source && (
+                <p className="text-[10px] font-bold text-rose-500">{errors.source.message}</p>
               )}
             </div>
 
@@ -141,6 +141,21 @@ export function AddIncomeDialog() {
               </div>
               {errors.amount && (
                 <p className="text-[10px] font-bold text-rose-500">{errors.amount.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes" className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                <Tag className="size-3.5" /> Notes
+              </Label>
+              <Input
+                id="notes"
+                placeholder="Optional details"
+                className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 transition-all focus:border-amber-500 focus:ring-amber-500/20 dark:border-slate-800 dark:bg-slate-900 dark:focus:border-amber-400"
+                {...register("notes")}
+              />
+              {errors.notes && (
+                <p className="text-[10px] font-bold text-rose-500">{errors.notes.message}</p>
               )}
             </div>
           </div>
