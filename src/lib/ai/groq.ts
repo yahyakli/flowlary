@@ -10,6 +10,8 @@
 let groqClient: any | null = null
 let groqModelCache: any | null = null
 
+export const groqModel = null
+
 export function isAiConfigured(): boolean {
   return Boolean(process.env.GROQ_API_KEY)
 }
@@ -22,13 +24,7 @@ async function initializeClient() {
     throw new Error('GROQ_API_KEY is not configured. Set GROQ_API_KEY in your environment to enable AI features.')
   }
 
-  // Try to dynamically import the Groq provider from the Vercel AI SDK or
-  // compatible package. We do this lazily so importing this module does
-  // not crash the app when the provider package isn't installed.
   try {
-    // Preferred provider package used by docs; if your project uses a
-    // different package name, adjust accordingly. Dynamic import keeps
-    // this tolerant in tests and on CI where AI may be disabled.
     const mod = await import('@ai-sdk/groq')
     if (typeof mod.createGroq !== 'function') {
       throw new Error('createGroq not found on @ai-sdk/groq')

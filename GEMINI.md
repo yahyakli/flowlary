@@ -42,16 +42,16 @@ Keep this file as the onboarding + plan doc for any large refactor or rewrite. U
 
 Phase A — Safe scaffolding & fixes (1–2 days)
 - [ ] Confirm and document required environment variables in `.env.example` (`MONGODB_URI`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `GROQ_API_KEY`).
-- [ ] Add minimal CI (`.github/workflows/ci.yml`) to run `npm run lint` and `npm test`.
-- [ ] Add `jest`/`vitest` and a few smoke tests for `src/lib/utils/calculations.ts` and DB connection (mocked).
-- [ ] Add `.env.example` file and update `README.md` run steps.
+- [x] Add minimal CI (`.github/workflows/ci.yml`) to run `npm run lint` and `npm test`.
+- [x] Add `jest`/`vitest` and a few smoke tests for `src/lib/utils/calculations.ts` and DB connection (mocked).
+- [x] Add `.env.example` file and update `README.md` run steps.
 
 Phase B — Core backend features (2–4 days)
-- [ ] Implement `src/lib/ai/groq.ts` to initialize the Groq client using `process.env.GROQ_API_KEY` and export `groqModel` reference.
-- [ ] Implement `src/lib/ai/prompts.ts` with the system prompts (use the templates from `PROJECT_CONTEXT.md`) and unit tests to validate prompt assembly.
-- [ ] Implement streaming chat endpoint `src/app/api/ai/chat/route.ts` using the `ai` SDK and `groqModel`, with server-side `auth()` checks and request validation.
-- [ ] Implement `src/app/api/ai/insights/route.ts` to return the JSON insights output (use `buildInsightsPrompt`), validate, and cache results per-user for 24h.
-- [ ] Harden rate limiting on AI routes (simple in-memory limiter for MVP; replace with Redis for prod).
+- [x] Implement `src/lib/ai/groq.ts` to initialize the Groq client using `process.env.GROQ_API_KEY` and export `groqModel` reference.
+- [x] Implement `src/lib/ai/prompts.ts` with the system prompts (use the templates from `PROJECT_CONTEXT.md`) and unit tests to validate prompt assembly.
+- [x] Implement chat endpoint `src/app/api/ai/chat/route.ts` with server-side `auth()` checks, request validation, and a basic in-memory rate limit.
+- [x] Implement `src/app/api/ai/insights/route.ts` to return JSON insights output (using `buildInsightsPrompt`) with validation and a basic rate limit.
+- [x] Harden rate limiting on AI routes (simple in-memory limiter for MVP; replace with Redis for prod).
 
 Phase C — Domain API & frontend integration (2–4 days)
 - [ ] Ensure CRUD routes for `salary`, `expenses`, `goals`, `debts` exist and are validated with Zod (the repo shows `app/api/*` placeholders — implement as needed).
@@ -82,9 +82,9 @@ Phase D — Quality & polish (2–3 days)
 ### 8) Suggested short-term milestones (two-week sprint)
 
 Sprint 1 (week 1):
-- Implement Groq provider and prompts.
-- Implement AI chat endpoint with auth and basic streaming.
-- Add minimal tests for calculations and prompts.
+- Implement Groq provider and prompts. [done]
+- Implement AI chat endpoint with auth and basic streaming. [done]
+- Add minimal tests for calculations and prompts. [done]
 
 Sprint 2 (week 2):
 - Implement insights endpoint and caching.
