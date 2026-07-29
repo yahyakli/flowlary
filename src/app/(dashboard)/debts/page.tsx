@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Plus,
   CreditCard,
@@ -11,6 +11,8 @@ import {
   Trash2,
   Landmark,
   Percent,
+  HandCoins,
+  ArrowRight,
 } from "lucide-react";
 import { useDebtStore } from "@/store/useDebtStore";
 import { AddDebtDialog } from "@/components/debts/AddDebtDialog";
@@ -18,6 +20,7 @@ import { DebtsSkeleton } from "@/components/debts/DebtsSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { formatCurrency as formatCurrencyMock } from "@/lib/mock-data";
+import { applyOptimisticDebtPayment } from "@/lib/utils/optimistic";
 
 function DebtStatsSkeleton() {
   return (
@@ -31,13 +34,14 @@ function DebtStatsSkeleton() {
 
 export default function DebtsPage() {
   const { debts, fetchDebts, deleteDebt, isLoading } = useDebtStore();
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDebts();
   }, [fetchDebts]);
 
   const stats = useMemo(() => {
-    const totalDebt = debts.reduce((acc, d) => acc + d.remainingAmount, 0);
+    const totalDebt = debts.reduce((acc, d) => acc + d.currentBalance, 0);
     const totalMonthly = debts.reduce((acc, d) => acc + d.monthlyPayment, 0);
     const avgInterest = debts.length
       ? debts.reduce((acc, d) => acc + d.interestRate, 0) / debts.length
@@ -156,9 +160,10 @@ export default function DebtsPage() {
             <div className="space-y-4">
               {debts.map((debt) => {
                 const id = debt._id ? (debt._id as any).toString() : Math.random().toString();
-                const progress = ((debt.totalAmount - debt.remainingAmount) / debt.totalAmount) * 100;
+                const paidOff = Math.max(0, debt.originalAmount - debt.currentBalance);
+                const progress = debt.originalAmount > 0 ? (paidOff / debt.originalAmount) * 100 : 0;
                 const monthsLeft = debt.monthlyPayment > 0
-                  ? Math.ceil(debt.remainingAmount / debt.monthlyPayment)
+                  ? Math.ceil(Math.max(0, debt.currentBalance) / debt.monthlyPayment)
                   : Infinity;
 
                 return (
@@ -188,10 +193,10 @@ export default function DebtsPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-black text-slate-900 dark:text-slate-50">
-                          {formatCurrencyMock(debt.remainingAmount)}
+                          {formatCurrencyMock(debt.currentBalance)}
                         </p>
                         <p className="text-xs text-slate-600 dark:text-slate-400">
-                          of {formatCurrencyMock(debt.totalAmount)}
+                          of {formatCurrencyMock(debt.originalAmount)}
                         </p>
                       </div>
                     </div>
@@ -199,10 +204,10 @@ export default function DebtsPage() {
                     <div className="mb-6">
                       <div className="mb-2 flex items-center justify-between text-xs">
                         <span className="font-medium text-slate-700 dark:text-slate-300">
-                          {progress.toFixed(0)}% Paid Off
+                          {Math.min(100, Math.max(0, progress)).toFixed(0)}% Paid Off
                         </span>
                         <span className="text-slate-500">
-                          {formatCurrencyMock(debt.totalAmount - debt.remainingAmount)} paid
+                          {formatCurrencyMock(paidOff)} paid
                         </span>
                       </div>
                       <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800">
@@ -213,7 +218,7 @@ export default function DebtsPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between rounded-xl bg-slate-50 p-3 dark:bg-slate-950/50">
+                    <div className="flex flex-col gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-950/50 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-2">
                         <Calendar className="size-4 text-slate-400" />
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -225,29 +230,68 @@ export default function DebtsPage() {
                           )}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                        <AddDebtDialog
-                          debt={debt}
-                          trigger={
-                            <button className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors">
-                              <Pencil className="size-4" />
-                            </button>
-                          }
-                        />
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => {
-                            toast.warning("Delete this debt?", {
-                              description: "This action cannot be undone.",
-                              action: {
-                                label: "Delete",
-                                onClick: () => deleteDebt(id),
-                              },
-                            });
+                          type="button"
+                          disabled={pendingId === id}
+                          onClick={async () => {
+                            const amount = Math.min(debt.currentBalance, debt.monthlyPayment || 0);
+                            if (!amount) return;
+                            const previous = debt.currentBalance;
+                            setPendingId(id);
+                            useDebtStore.setState((state) => ({
+                              debts: applyOptimisticDebtPayment(state.debts, id, amount),
+                            }));
+                            try {
+                              const response = await fetch(`/api/debts/${id}/pay`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ amount }),
+                              });
+                              if (!response.ok) {
+                                throw new Error("Unable to record payment");
+                              }
+                              toast.success("Payment recorded");
+                            } catch (error) {
+                              useDebtStore.setState((state) => ({
+                                debts: state.debts.map((entry) =>
+                                  (entry._id as any)?.toString?.() === id ? { ...entry, currentBalance: previous, remainingAmount: previous, isCompleted: previous <= 0 } : entry
+                                ),
+                              }));
+                              toast.error("Payment failed, changes rolled back.");
+                            } finally {
+                              setPendingId(null);
+                            }
                           }}
-                          className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors"
+                          className="inline-flex items-center gap-2 rounded-full bg-rose-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-70"
                         >
-                          <Trash2 className="size-4" />
+                          <HandCoins className="size-4" />
+                          {pendingId === id ? "Saving..." : "Pay"}
                         </button>
+                        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100">
+                          <AddDebtDialog
+                            debt={debt}
+                            trigger={
+                              <button className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors">
+                                <Pencil className="size-4" />
+                              </button>
+                            }
+                          />
+                          <button
+                            onClick={() => {
+                              toast.warning("Delete this debt?", {
+                                description: "This action cannot be undone.",
+                                action: {
+                                  label: "Delete",
+                                  onClick: () => deleteDebt(id),
+                                },
+                              });
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

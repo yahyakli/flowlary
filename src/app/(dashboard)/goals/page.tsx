@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SavingsGoalsProgress } from "@/components/dashboard/SavingsGoalsProgress";
 import { formatCurrency } from "@/lib/mock-data";
-import { Plus, Target, TrendingUp, Calendar, Trophy } from "lucide-react";
+import { Plus, Target, TrendingUp, Calendar, Trophy, HandCoins, ArrowRight } from "lucide-react";
 import { useGoalStore } from "@/store/useGoalStore";
 import { AddGoalDialog } from "@/components/goals/AddGoalDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { applyOptimisticGoalContribution } from "@/lib/utils/optimistic";
+import { toast } from "sonner";
 
 function GoalStatsSkeleton() {
   return (
@@ -52,6 +54,7 @@ function GoalsListSkeleton() {
 
 export default function GoalsPage() {
   const { goals, fetchGoals, isLoading } = useGoalStore();
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchGoals();
@@ -177,7 +180,79 @@ export default function GoalsPage() {
 
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Main Content - 2/3 width */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Goal progress</h3>
+                <p className="mt-1 text-sm text-slate-500">Tap a goal to add a contribution and update your progress instantly.</p>
+              </div>
+            </div>
+            <div className="mt-6 space-y-4">
+              {goals.map((goal) => {
+                const id = (goal._id as any)?.toString?.() ?? "";
+                const progress = goal.targetAmount > 0 ? (goal.currentSaved / goal.targetAmount) * 100 : 0;
+                const remaining = Math.max(0, goal.targetAmount - goal.currentSaved);
+
+                return (
+                  <div key={id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-base font-semibold text-slate-900 dark:text-slate-50">{goal.title}</p>
+                        <p className="mt-1 text-sm text-slate-500">{formatCurrency(goal.currentSaved)} of {formatCurrency(goal.targetAmount)}</p>
+                      </div>
+                      <div className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-700 shadow-sm dark:bg-slate-900 dark:text-slate-300">
+                        {progress.toFixed(0)}%
+                      </div>
+                    </div>
+                    <div className="mt-4 h-2.5 rounded-full bg-slate-200 dark:bg-slate-800">
+                      <div className="h-2.5 rounded-full bg-gradient-to-r from-violet-500 to-cyan-500" style={{ width: `${Math.min(100, progress)}%` }} />
+                    </div>
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="text-sm text-slate-500">{formatCurrency(remaining)} remaining</div>
+                      <button
+                        type="button"
+                        disabled={pendingId === id}
+                        onClick={async () => {
+                          const amount = Math.min(remaining, goal.monthlyContribution || 0 || 100);
+                          if (!amount) return;
+                          const previous = goal.currentSaved;
+                          setPendingId(id);
+                          useGoalStore.setState((state) => ({
+                            goals: applyOptimisticGoalContribution(state.goals, id, amount),
+                          }));
+                          try {
+                            const response = await fetch(`/api/goals/${id}/contribute`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ amount }),
+                            });
+                            if (!response.ok) {
+                              throw new Error("Unable to record contribution");
+                            }
+                            toast.success("Contribution recorded");
+                          } catch (error) {
+                            useGoalStore.setState((state) => ({
+                              goals: state.goals.map((entry) =>
+                                (entry._id as any)?.toString?.() === id ? { ...entry, currentSaved: previous, savedAmount: previous, isCompleted: previous >= goal.targetAmount } : entry
+                              ),
+                            }));
+                            toast.error("Contribution failed, changes rolled back.");
+                          } finally {
+                            setPendingId(null);
+                          }
+                        }}
+                        className="inline-flex items-center gap-2 self-start rounded-full bg-violet-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        <HandCoins className="size-4" />
+                        {pendingId === id ? "Saving..." : "Add contribution"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
           <SavingsGoalsProgress goals={goals} />
         </div>
 
