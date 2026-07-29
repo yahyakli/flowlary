@@ -1,34 +1,40 @@
 import mongoose from 'mongoose';
 
 export enum ExpenseCategory {
-  Housing = 'housing',
-  Utilities = 'utilities',
-  Transportation = 'transportation',
-  Food = 'food',
-  Healthcare = 'healthcare',
-  Insurance = 'insurance',
-  Entertainment = 'entertainment',
-  Education = 'education',
-  Savings = 'savings',
-  Debt = 'debt',
-  Subscriptions = 'subscriptions',
-  Personal = 'personal',
-  Investment = 'investment',
-  Miscellaneous = 'miscellaneous',
+  Housing = 'Housing/Rent',
+  Food = 'Food',
+  Transport = 'Transport',
+  Utilities = 'Utilities',
+  Healthcare = 'Health/Gym',
+  Education = 'Education',
+  Entertainment = 'Entertainment',
+  Subscriptions = 'Subscriptions',
+  Clothing = 'Clothing',
+  PersonalCare = 'Personal Care',
+  PhoneInternet = 'Phone/Internet',
+  Insurance = 'Insurance',
+  Travel = 'Travel',
+  GiftsDonations = 'Gifts/Donations',
+  DebtPayment = 'Debt Payment',
+  SavingsTransfer = 'Savings Transfer',
+  MiscellaneousOther = 'Miscellaneous/Other',
 }
 
 export interface IExpense {
   _id: mongoose.Types.ObjectId;
   userId: string;
-  title: string;
-  amount: number;
+  date: Date;
   category: ExpenseCategory;
-  type: 'fixed' | 'variable';
-  isRecurring: boolean;
+  description: string;
+  amount: number;
+  notes?: string;
+  title?: string;
+  type?: 'fixed' | 'variable';
+  isRecurring?: boolean;
   dueDay?: number;
-  month: number;
-  year: number;
-  tags: string[];
+  month?: number;
+  year?: number;
+  tags?: string[];
   note?: string;
   createdAt: Date;
   updatedAt: Date;

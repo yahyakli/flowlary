@@ -1,85 +1,88 @@
+import mongoose from "mongoose";
+import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db/mongoose";
 import { Expense } from "@/lib/db/models/Expense";
+import { postLedgerEntry } from "@/lib/ledger/postEntry";
 import { expenseSchema } from "@/lib/validations/expense.schema";
-import { NextResponse } from "next/server";
-import { ensureRecurringExpenses } from "@/lib/utils/rollover";
+import { ZodError } from "zod";
 
-export async function GET(req: Request) {
+function unauthorizedResponse() {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
+
+function validationErrorResponse(details: unknown) {
+  return NextResponse.json({ error: "Validation failed", details }, { status: 400 });
+}
+
+function serverErrorResponse(error: unknown) {
+  const message = error instanceof Error ? error.message : "Internal Server Error";
+  return NextResponse.json({ error: message }, { status: 500 });
+}
+
+export async function GET() {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedResponse();
     }
 
-    const { searchParams } = new URL(req.url);
-    const now = new Date();
-    const monthStr = searchParams.get("month");
-    const yearStr = searchParams.get("year");
-    
-    // Always trigger rollover for the current month
     await connectDB();
-    await ensureRecurringExpenses(session.user.id, now.getMonth() + 1, now.getFullYear());
+    const expenses = await Expense.find({ userId: session.user.id }).sort({ date: -1 }).lean();
 
-    const search = searchParams.get("search");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "100"); // Increase limit to see more data
-    const skip = (page - 1) * limit;
-
-    const query: any = { userId: session.user.id };
-    if (monthStr) query.month = parseInt(monthStr);
-    if (yearStr) query.year = parseInt(yearStr);
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { category: { $regex: search, $options: "i" } },
-      ];
-    }
-
-    const expenses = await Expense.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    const total = await Expense.countDocuments(query);
-
-    return NextResponse.json({
-      expenses,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ expenses });
+  } catch (error) {
+    return serverErrorResponse(error);
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedResponse();
     }
 
-    const body = await req.json();
+    const body = await request.json();
     const validatedData = expenseSchema.parse(body);
 
     await connectDB();
 
+    const date = validatedData.date ?? new Date();
     const expense = await Expense.create({
-      ...validatedData,
       userId: session.user.id,
+      date,
+      category: validatedData.category,
+      description: validatedData.description,
+      amount: validatedData.amount,
+      notes: validatedData.notes,
+      title: validatedData.description,
+      type: "variable",
+      isRecurring: false,
+      month: date.getMonth() + 1,
+      year: date.getFullYear(),
+      tags: [],
+      note: validatedData.notes,
     });
 
-    return NextResponse.json(expense, { status: 201 });
-  } catch (error: any) {
-    if (error.name === "ZodError") {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+    try {
+      await postLedgerEntry(new mongoose.Types.ObjectId(session.user.id), {
+        type: "expense",
+        amountOut: validatedData.amount,
+        date,
+        category: validatedData.category,
+        note: validatedData.notes ?? validatedData.description,
+      });
+    } catch (ledgerError) {
+      await Expense.deleteOne({ _id: expense._id });
+      throw ledgerError;
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+
+    return NextResponse.json({ expense }, { status: 201 });
+  } catch (error) {
+    if (error instanceof ZodError || (error as any)?.name === "ZodError") {
+      return validationErrorResponse((error as any).issues ?? (error as any).errors);
+    }
+    return serverErrorResponse(error);
   }
 }

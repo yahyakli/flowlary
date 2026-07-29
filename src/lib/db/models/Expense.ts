@@ -1,28 +1,27 @@
 import mongoose, { Schema, Model, models } from 'mongoose';
-import { ExpenseCategory } from '../types';
-import type { IExpense } from '../types';
+import { ExpenseCategory } from '../types/Expense';
+import type { IExpense } from '../types/Expense';
 
 const expenseSchema = new Schema<IExpense>(
   {
-    userId: { type: String, required: true },
-    title: { type: String, required: true },
-    amount: { type: Number, required: true },
+    userId: { type: String, required: true, index: true },
+    date: { type: Date, required: true },
     category: {
       type: String,
       enum: Object.values(ExpenseCategory),
       required: true,
     },
-    type: {
-      type: String,
-      enum: ['fixed', 'variable'],
-      required: true,
-    },
-    isRecurring: { type: Boolean, required: true, default: false },
+    description: { type: String, required: true },
+    notes: { type: String },
+    amount: { type: Number, required: true },
+    title: { type: String, default: '' },
+    type: { type: String, enum: ['fixed', 'variable'], default: 'variable' },
+    isRecurring: { type: Boolean, default: false },
     dueDay: { type: Number, min: 1, max: 31 },
     month: { type: Number, required: true, min: 1, max: 12 },
     year: { type: Number, required: true },
     tags: { type: [String], default: [] },
-    note: { type: String, default: '' },
+    note: { type: String },
   },
   {
     timestamps: true,
