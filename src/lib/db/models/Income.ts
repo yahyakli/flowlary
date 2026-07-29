@@ -3,9 +3,9 @@ import mongoose, { Schema, Model, models } from 'mongoose';
 export interface IIncome {
   _id: mongoose.Types.ObjectId;
   userId: string;
-  title: string;
+  source: string;
   amount: number;
-  category: string;
+  notes?: string;
   date: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -14,9 +14,9 @@ export interface IIncome {
 const incomeSchema = new Schema<IIncome>(
   {
     userId: { type: String, required: true, index: true },
-    title: { type: String, required: true },
+    source: { type: String, required: true },
     amount: { type: Number, required: true },
-    category: { type: String, default: 'Other' },
+    notes: { type: String },
     date: { type: Date, default: Date.now },
   },
   {

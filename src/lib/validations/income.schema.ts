@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 export const incomeSchema = z.object({
-  title: z.string().min(1, "Title is required"),
+  source: z.string().min(1, "Source is required"),
   amount: z.number().min(0.01, "Amount must be greater than 0"),
-  category: z.string().min(1, "Category is required"),
-  date: z.date().or(z.string()).pipe(z.coerce.date()).optional(),
+  date: z.coerce.date().optional(),
+  notes: z.string().optional(),
 });
 
 export type IncomeSchema = z.infer<typeof incomeSchema>;
