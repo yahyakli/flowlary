@@ -1,57 +1,89 @@
 import { auth } from '@/lib/auth'
 import { getGroqModel } from '@/lib/ai/groq'
 import { buildInsightsPrompt } from '@/lib/ai/prompts'
-import { isRateLimited } from '@/lib/ai/rate-limit'
+import connectDB from '@/lib/db/mongoose'
+import { MonthlySnapshot } from '@/lib/db/models/MonthlySnapshot'
+import { AiInsightsCache } from '@/lib/db/models/AiInsightsCache'
 import { z } from 'zod'
 
-const insightsSchema = z.object({
-  monthlySnapshots: z.array(z.object({
-    month: z.string(),
-    totalIncome: z.number(),
-    totalExpenses: z.number(),
-    netBalance: z.number(),
-  }))
+const insightResponseSchema = z.object({
+  trend: z.string().min(1),
+  anomalies: z.array(z.string()),
+  suggestion: z.string().min(1),
 })
 
-export async function GET() {
-  return Response.json({ message: 'Insights API is available.' })
+async function parseInsightsResponse(rawText: string) {
+  const trimmed = rawText.trim()
+  const parsed = JSON.parse(trimmed)
+  return insightResponseSchema.parse(parsed)
 }
 
-export async function POST(request: Request) {
-  const session = await auth()
-  if (!session?.user?.id) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  if (isRateLimited(`insights:${session.user.id}`)) {
-    return Response.json({ error: 'Rate limit exceeded. Please try again shortly.' }, { status: 429 })
-  }
+async function generateInsightForSnapshots(monthlySnapshots: Array<{ month: string; totalIncome: number; totalExpenses: number; netBalance: number }>) {
+  const model = await getGroqModel()
+  const prompt = buildInsightsPrompt(monthlySnapshots)
+  const firstResult = await model.doGenerate({
+    inputFormat: 'prompt',
+    prompt,
+    temperature: 0.1,
+    maxTokens: 400,
+  })
 
   try {
-    const body = await request.json()
-    const parsed = insightsSchema.parse(body)
-    const model = await getGroqModel()
-    const prompt = buildInsightsPrompt(parsed.monthlySnapshots)
-    const response = await model.doGenerate({
+    return await parseInsightsResponse(firstResult.text ?? '{}')
+  } catch {
+    const retryResult = await model.doGenerate({
       inputFormat: 'prompt',
       prompt,
       temperature: 0.1,
       maxTokens: 400,
     })
 
-    let payload: { trend: string; anomalies: string[]; suggestion: string }
-    try {
-      payload = JSON.parse(response.text ?? '{}')
-    } catch {
-      payload = { trend: 'No trend available', anomalies: [], suggestion: 'Add more financial data to generate a stronger insight.' }
+    return await parseInsightsResponse(retryResult.text ?? '{}')
+  }
+}
+
+export async function GET() {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    await connectDB()
+
+    const freshCache = await AiInsightsCache.findOne({ userId: session.user.id }).lean()
+    if (freshCache && freshCache.createdAt && Date.now() - new Date(freshCache.createdAt).getTime() < 24 * 60 * 60 * 1000) {
+      return Response.json({ insight: freshCache.result, cached: true })
     }
 
-    return Response.json({ insight: payload, provider: 'groq' })
+    const monthlySnapshots = await MonthlySnapshot.find({ userId: session.user.id })
+      .sort({ month: -1 })
+      .limit(6)
+      .lean()
+
+    const insight = await generateInsightForSnapshots(monthlySnapshots.map((snapshot) => ({
+      month: snapshot.month,
+      totalIncome: snapshot.totalIncome ?? 0,
+      totalExpenses: snapshot.totalExpenses ?? 0,
+      netBalance: snapshot.netBalance ?? 0,
+    })))
+
+    await AiInsightsCache.create({
+      userId: session.user.id,
+      result: insight,
+      createdAt: new Date(),
+    })
+
+    return Response.json({ insight, cached: false })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return Response.json({ error: error.flatten().fieldErrors }, { status: 400 })
+      return Response.json({ error: 'AI returned malformed insights data.' }, { status: 502 })
     }
 
     return Response.json({ error: (error as Error).message }, { status: 500 })
   }
+}
+
+export async function POST() {
+  return Response.json({ error: 'Method not allowed' }, { status: 405 })
 }
