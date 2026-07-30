@@ -55,6 +55,7 @@ Phase B — Core backend features (2–4 days)
 
 Phase C — Domain API & frontend integration (2–4 days)
 - [ ] Ensure CRUD routes for `salary`, `expenses`, `goals`, `debts` exist and are validated with Zod (the repo shows `app/api/*` placeholders — implement as needed).
+- [x] Add RecurringRule model + scheduled cron job that generates pending drafts (user confirms before ledger posting). Routes: `/api/recurring-rules`, `/api/drafts`, `/api/cron/recurring`.
 - [ ] Wire store hooks (`src/store/*`) to call the API routes and handle optimistic updates.
 - [ ] Connect dashboard components (`components/dashboard/*`) to real data (salary, expenses, goals) and add loading/error states.
 
