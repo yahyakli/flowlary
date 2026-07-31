@@ -159,11 +159,13 @@ export default function DebtsPage() {
           ) : (
             <div className="space-y-4">
               {debts.map((debt) => {
-                const id = debt._id ? (debt._id as any).toString() : Math.random().toString();
-                const paidOff = Math.max(0, debt.originalAmount - debt.currentBalance);
-                const progress = debt.originalAmount > 0 ? (paidOff / debt.originalAmount) * 100 : 0;
+                const id = debt._id ? (debt._id as unknown as string) : Math.random().toString();
+                const originalAmount = debt.originalAmount ?? debt.totalAmount ?? 0;
+                const currentBalance = debt.currentBalance ?? debt.remainingAmount ?? 0;
+                const paidOff = Math.max(0, originalAmount - currentBalance);
+                const progress = originalAmount > 0 ? (paidOff / originalAmount) * 100 : 0;
                 const monthsLeft = debt.monthlyPayment > 0
-                  ? Math.ceil(Math.max(0, debt.currentBalance) / debt.monthlyPayment)
+                  ? Math.ceil(Math.max(0, currentBalance) / debt.monthlyPayment)
                   : Infinity;
 
                 return (
@@ -193,10 +195,10 @@ export default function DebtsPage() {
                       </div>
                       <div className="text-left sm:text-right">
                         <p className="text-lg font-black text-slate-900 dark:text-slate-50">
-                          {formatCurrencyMock(debt.currentBalance)}
+                          {formatCurrencyMock(currentBalance)}
                         </p>
                         <p className="text-xs text-slate-600 dark:text-slate-400">
-                          of {formatCurrencyMock(debt.originalAmount)}
+                          of {formatCurrencyMock(originalAmount)}
                         </p>
                       </div>
                     </div>
@@ -255,7 +257,7 @@ export default function DebtsPage() {
                             } catch (error) {
                               useDebtStore.setState((state) => ({
                                 debts: state.debts.map((entry) =>
-                                  (entry._id as any)?.toString?.() === id ? { ...entry, currentBalance: previous, remainingAmount: previous, isCompleted: previous <= 0 } : entry
+                                  (entry._id as unknown as string) === id ? { ...entry, currentBalance: previous, remainingAmount: previous, isCompleted: previous <= 0 } : entry
                                 ),
                               }));
                               toast.error("Payment failed, changes rolled back.");
@@ -312,11 +314,15 @@ export default function DebtsPage() {
               </div>
               <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950/50">
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Total Paid So Far</p>
-                <p className="mt-1 text-2xl font-black text-emerald-500">
-                  {formatCurrencyMock(
-                    debts.reduce((acc, d) => acc + (d.totalAmount - d.remainingAmount), 0)
-                  )}
-                </p>
+                  <p className="mt-1 text-2xl font-black text-emerald-500">
+                    {formatCurrencyMock(
+                      debts.reduce((acc, d) => {
+                        const total = d.totalAmount ?? 0;
+                        const remaining = d.remainingAmount ?? 0;
+                        return acc + (total - remaining);
+                      }, 0)
+                    )}
+                  </p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950/50">
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Estimated Payoff</p>
