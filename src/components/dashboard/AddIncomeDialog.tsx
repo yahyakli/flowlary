@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,20 +20,27 @@ import { Label } from "@/components/ui/label";
 import { Coins, Tag, Plus, Sparkles, TrendingUp, X } from "lucide-react";
 import { toast } from "sonner";
 
-export function AddIncomeDialog() {
+export function AddIncomeDialog({ defaultDate }: { defaultDate?: Date }) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const resolvedDate = useMemo(() => {
+    if (defaultDate) return defaultDate;
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  }, [defaultDate]);
 
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<z.input<typeof incomeSchema>, any, IncomeSchema>({
+  } = useForm<z.input<typeof incomeSchema>, unknown, IncomeSchema>({
     resolver: zodResolver(incomeSchema),
     defaultValues: {
       source: "",
       amount: 0,
+      date: resolvedDate,
       notes: "",
     },
   });
@@ -141,6 +148,21 @@ export function AddIncomeDialog() {
               </div>
               {errors.amount && (
                 <p className="text-[10px] font-bold text-rose-500">{errors.amount.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="date" className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                <Tag className="size-3.5" /> Date
+              </Label>
+              <Input
+                id="date"
+                type="date"
+                className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 transition-all focus:border-amber-500 focus:ring-amber-500/20 dark:border-slate-800 dark:bg-slate-900 dark:focus:border-amber-400"
+                {...register("date", { valueAsDate: true })}
+              />
+              {errors.date && (
+                <p className="text-[10px] font-bold text-rose-500">{errors.date.message}</p>
               )}
             </div>
 

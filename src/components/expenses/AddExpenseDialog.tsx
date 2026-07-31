@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { expenseSchema, ExpenseSchema } from "@/lib/validations/expense.schema";
@@ -69,9 +69,10 @@ function FieldLabel({
 interface AddExpenseDialogProps {
   expense?: IExpense;
   trigger?: React.ReactNode;
+  defaultDate?: Date;
 }
 
-export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
+export function AddExpenseDialog({ expense, trigger, defaultDate }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   const [categoryInput, setCategoryInput] = useState("");
   const [recentCategories, setRecentCategories] = useState<ExpenseCategory[]>([]);
@@ -81,6 +82,12 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
 
   const isEditMode = !!expense;
 
+  const resolvedDefaultDate = useMemo(() => {
+    if (expense?.date) return new Date(expense.date);
+    if (defaultDate) return defaultDate;
+    return new Date();
+  }, [expense?.date, defaultDate]);
+
   const {
     register,
     handleSubmit,
@@ -89,13 +96,14 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
     reset,
     formState: { errors },
   } = useForm<ExpenseFormValues>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(expenseSchema) as any,
     defaultValues: {
       description: "",
       amount: 0,
       category: ExpenseCategory.Food,
       notes: "",
-      date: new Date(),
+      date: resolvedDefaultDate,
       type: "variable",
       isRecurring: false,
     },
@@ -110,7 +118,7 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
           amount: expense.amount,
           category: expense.category as ExpenseCategory,
           notes: expense.notes ?? expense.note ?? "",
-          date: expense.date ?? new Date(),
+          date: expense.date ?? resolvedDefaultDate,
           type: expense.type,
           isRecurring: expense.isRecurring,
           dueDay: expense.dueDay,
@@ -121,13 +129,13 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
           amount: 0,
           category: ExpenseCategory.Food,
           notes: "",
-          date: new Date(),
+          date: resolvedDefaultDate,
           type: "variable",
           isRecurring: false,
         });
       }
     }
-  }, [expense, open, reset]);
+  }, [expense, open, reset, resolvedDefaultDate]);
 
   const type = watch("type");
   const dueDay = watch("dueDay");
@@ -339,6 +347,21 @@ export function AddExpenseDialog({ expense, trigger }: AddExpenseDialogProps) {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* ── Date ── */}
+              <div className="space-y-2">
+                <Label>
+                  <FieldLabel icon={<Calendar className="size-3" />}>Date</FieldLabel>
+                </Label>
+                <Input
+                  type="date"
+                  className="h-11 rounded-xl border-slate-200 bg-slate-50/50 px-4 text-sm font-medium transition-all focus:border-slate-900/20 focus:bg-white focus:ring-4 focus:ring-slate-900/5 dark:border-slate-800 dark:bg-slate-900/50 dark:focus:border-emerald-500/30 dark:focus:bg-slate-900 dark:focus:ring-emerald-500/5"
+                  {...register("date", { valueAsDate: true })}
+                />
+                {errors.date && (
+                  <p className="px-1 text-[10px] font-bold text-rose-500">{errors.date.message}</p>
+                )}
               </div>
 
               {/* ── Billing Day (Fixed Only) ── */}

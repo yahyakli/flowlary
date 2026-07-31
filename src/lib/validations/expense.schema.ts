@@ -12,8 +12,15 @@ export const expenseSchema = z.object({
         return val;
       }
 
-      if (typeof val === 'string' || typeof val === 'number') {
-        return new Date(val);
+      if (typeof val === 'string') {
+        // Parse YYYY-MM-DD as local time to avoid timezone shifts
+        const parts = val.split('-');
+        if (parts.length === 3) {
+          const year = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1; // JS months are 0-indexed
+          const day = parseInt(parts[2], 10);
+          return new Date(year, month, day);
+        }
       }
 
       return val;

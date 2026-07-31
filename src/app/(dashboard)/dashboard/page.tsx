@@ -207,7 +207,9 @@ function DashboardPage() {
             ))}
           </div>
           <div className="w-full sm:max-w-[280px]">
-            <AddIncomeDialog />
+            <AddIncomeDialog
+              defaultDate={selectedMonth ? new Date(selectedMonth + "-01") : undefined}
+            />
           </div>
         </div>
       </div>

@@ -86,6 +86,14 @@ export default function ExpensesPage() {
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
 
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+
+  const selectedMonthNum = selectedMonth ? parseInt(selectedMonth.split("-")[1], 10) : currentMonth;
+  const selectedYear = selectedMonth ? parseInt(selectedMonth.split("-")[0], 10) : currentYear;
+
   const filteredExpenses = useMemo(() => {
     const normalizedSearch = searchTerm.toLowerCase();
 
@@ -97,10 +105,10 @@ export default function ExpensesPage() {
     });
   }, [expenses, searchTerm]);
 
-  // Filter expenses for current month stats
+  // Filter expenses for selected month stats
   const currentMonthExpenses = useMemo(() => {
-    return expenses.filter(e => e.month === currentMonth && e.year === currentYear);
-  }, [expenses, currentMonth, currentYear]);
+    return expenses.filter(e => e.month === selectedMonthNum && e.year === selectedYear);
+  }, [expenses, selectedMonthNum, selectedYear]);
 
   const totalExpenses = useMemo(() => 
     currentMonthExpenses.reduce((acc, t) => acc + t.amount, 0),
@@ -200,7 +208,9 @@ export default function ExpensesPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <AddExpenseDialog />
+            <AddExpenseDialog
+              defaultDate={selectedMonth ? new Date(selectedMonth + "-01") : new Date()}
+            />
           </div>
         </div>
       </div>
@@ -211,7 +221,7 @@ export default function ExpensesPage() {
           <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
             <Receipt className="size-6" />
           </div>
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Expenses ({now.toLocaleString('default', { month: 'long' })})</p>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Expenses ({selectedMonth ? new Date(selectedMonth + "-01").toLocaleString('default', { month: 'long', year: 'numeric' }) : now.toLocaleString('default', { month: 'long' })})</p>
           <h3 className="mt-1 text-3xl font-black text-slate-900 dark:text-slate-50">
             {formatCurrency(totalExpenses)}
           </h3>
@@ -221,7 +231,7 @@ export default function ExpensesPage() {
           <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400">
             <Wallet className="size-6" />
           </div>
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Fixed Commitments ({now.toLocaleString('default', { month: 'long' })})</p>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Fixed Commitments ({selectedMonth ? new Date(selectedMonth + "-01").toLocaleString('default', { month: 'long', year: 'numeric' }) : now.toLocaleString('default', { month: 'long' })})</p>
           <h3 className="mt-1 text-3xl font-black text-slate-900 dark:text-slate-50">
             {formatCurrency(fixedExpenses)}
           </h3>
@@ -231,7 +241,7 @@ export default function ExpensesPage() {
           <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
             <ArrowDownRight className="size-6" />
           </div>
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Variable Spending (May)</p>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Variable Spending ({selectedMonth ? new Date(selectedMonth + "-01").toLocaleString('default', { month: 'long', year: 'numeric' }) : now.toLocaleString('default', { month: 'long' })})</p>
           <h3 className="mt-1 text-3xl font-black text-slate-900 dark:text-slate-50">
             {formatCurrency(variableExpenses)}
           </h3>
