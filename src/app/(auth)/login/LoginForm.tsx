@@ -110,7 +110,7 @@ export default function LoginPage() {
                     <span className="w-full border-t border-slate-200 dark:border-slate-800"></span>
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-[#f1f5f9] px-2 text-slate-400 dark:bg-[#020617]">Or use email</span>
+                    <span className="bg-[#f1f5f9] px-2 text-slate-600 dark:bg-[#020617] dark:text-slate-400">Or use email</span>
                   </div>
                 </div>
 
