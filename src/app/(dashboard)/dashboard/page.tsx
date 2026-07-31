@@ -7,6 +7,10 @@ import { AddIncomeDialog } from "@/components/dashboard/AddIncomeDialog";
 import { MonthCalendar } from "@/components/dashboard/MonthCalendar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils/currency";
+import { useDebtStore } from "@/store/useDebtStore";
+import { useExpenseStore } from "@/store/useExpenseStore";
+import { useIncomeStore } from "@/store/useIncomeStore";
+import { useGoalStore } from "@/store/useGoalStore";
 
 interface DashboardSummary {
   month: string;
@@ -51,6 +55,11 @@ function DashboardPage() {
     const currentMonth = months[1]?.split(":")[0] ?? months[0]?.split(":")[0] ?? "";
     setSelectedMonth(currentMonth);
   }, []);
+
+  const debtLoading = useDebtStore((state) => state.isLoading);
+  const expenseLoading = useExpenseStore((state) => state.isLoading);
+  const incomeLoading = useIncomeStore((state) => state.isLoading);
+  const goalLoading = useGoalStore((state) => state.isLoading);
 
   useEffect(() => {
     if (!selectedMonth) return;
@@ -99,7 +108,7 @@ function DashboardPage() {
     }
 
     loadDashboard();
-  }, [selectedMonth]);
+  }, [selectedMonth, debtLoading, expenseLoading, incomeLoading, goalLoading]);
 
   const categoryData = useMemo(() => {
     if (!summary?.expenseByCategory) return [];

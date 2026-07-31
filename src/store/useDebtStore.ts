@@ -84,6 +84,7 @@ export const useDebtStore = create<DebtState>((set, get) => ({
         isLoading: false,
       }));
       toast.success('Debt added successfully');
+      get().fetchDebts();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       set({ error: message, isLoading: false });
@@ -122,6 +123,7 @@ export const useDebtStore = create<DebtState>((set, get) => ({
         isLoading: false,
       }));
       toast.success('Debt updated successfully');
+      get().fetchDebts();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       set({ error: message, isLoading: false });
@@ -142,6 +144,7 @@ export const useDebtStore = create<DebtState>((set, get) => ({
         safeDebts: state.safeDebts.filter((entry) => getDebtId(entry) !== id),
       }));
       toast.success('Debt deleted');
+      get().fetchDebts();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       toast.error(message);

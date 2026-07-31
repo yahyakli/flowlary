@@ -3,6 +3,15 @@ import { IGoal } from '@/lib/db/types';
 import { GoalSchema } from '@/lib/validations/goal.schema';
 import { toast } from 'sonner';
 
+function getGoalId(value: unknown): string {
+  if (value && typeof value === 'object' && '_id' in value) {
+    const id = (value as { _id: unknown })._id;
+    if (typeof id === 'string') return id;
+    if (id && typeof id.toString === 'function') return id.toString();
+  }
+  return '';
+}
+
 interface GoalState {
   goals: IGoal[];
   isLoading: boolean;
@@ -26,9 +35,10 @@ export const useGoalStore = create<GoalState>((set, get) => ({
       
       const data = await response.json();
       set({ goals: data || [], isLoading: false });
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false });
-      toast.error('Could not load goals');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not load goals';
+      set({ error: message, isLoading: false });
+      toast.error(message);
     }
   },
 
@@ -54,9 +64,11 @@ export const useGoalStore = create<GoalState>((set, get) => ({
         isLoading: false,
       }));
       toast.success('Goal added successfully');
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false });
-      toast.error(error.message);
+      get().fetchGoals();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to add goal';
+      set({ error: message, isLoading: false });
+      toast.error(message);
     }
   },
 
@@ -77,16 +89,18 @@ export const useGoalStore = create<GoalState>((set, get) => ({
       const updatedGoal = await response.json();
       set((state) => ({
         goals: state.goals.map((g) => 
-          (g._id as any).toString() === id ? updatedGoal : g
+          getGoalId(g) === id ? updatedGoal : g
         ).sort((a, b) => 
           new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
         ),
         isLoading: false,
       }));
       toast.success('Goal updated successfully');
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false });
-      toast.error(error.message);
+      get().fetchGoals();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update goal';
+      set({ error: message, isLoading: false });
+      toast.error(message);
     }
   },
 
@@ -99,11 +113,13 @@ export const useGoalStore = create<GoalState>((set, get) => ({
       if (!response.ok) throw new Error('Failed to delete goal');
 
       set((state) => ({
-        goals: state.goals.filter((g) => (g._id as any).toString() !== id),
+        goals: state.goals.filter((g) => getGoalId(g) !== id),
       }));
       toast.success('Goal deleted');
-    } catch (error: any) {
-      toast.error('Could not delete goal');
+      get().fetchGoals();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not delete goal';
+      toast.error(message);
     }
   },
 }));

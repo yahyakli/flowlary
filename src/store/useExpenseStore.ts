@@ -32,9 +32,10 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
       // Handle both old array format and new object format with pagination
       const expenses = Array.isArray(data) ? data : data.expenses;
       set({ expenses: expenses || [], isLoading: false });
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false });
-      toast.error('Could not load expenses');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not load expenses';
+      set({ error: message, isLoading: false });
+      toast.error(message);
     }
   },
 
@@ -58,9 +59,11 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
         isLoading: false,
       }));
       toast.success('Expense added successfully');
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false });
-      toast.error(error.message);
+      get().fetchExpenses();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to add expense';
+      set({ error: message, isLoading: false });
+      toast.error(message);
     }
   },
 
@@ -86,9 +89,11 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
         isLoading: false,
       }));
       toast.success('Expense updated successfully');
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false });
-      toast.error(error.message);
+      get().fetchExpenses();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update expense';
+      set({ error: message, isLoading: false });
+      toast.error(message);
     }
   },
 
@@ -104,8 +109,10 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
         expenses: state.expenses.filter((e) => e._id.toString() !== id),
       }));
       toast.success('Expense deleted');
-    } catch (error: any) {
-      toast.error('Could not delete expense');
+      get().fetchExpenses();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not delete expense';
+      toast.error(message);
     }
   },
 }));

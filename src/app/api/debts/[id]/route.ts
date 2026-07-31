@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db/mongoose";
 import { Debt } from "@/lib/db/models/Debt";
+import { LedgerEntry } from "@/lib/db/models/LedgerEntry";
 import { debtSchema } from "@/lib/validations/debt.schema";
 
 function unauthorizedResponse() {
@@ -82,7 +83,7 @@ export async function PATCH(
       return notFoundResponse();
     }
 
-    const updatedData: any = { ...validatedData };
+    const updatedData: Record<string, unknown> = { ...validatedData };
     const remaining = validatedData.remainingAmount ?? currentDebt.remainingAmount;
     updatedData.isCompleted = remaining <= 0;
 
@@ -98,8 +99,8 @@ export async function PATCH(
 
     return NextResponse.json({ debt });
   } catch (error) {
-    if (error instanceof ZodError || (error as any)?.name === 'ZodError') {
-      return validationErrorResponse((error as any).issues ?? (error as any).errors);
+    if (error instanceof ZodError || (error as unknown as { name?: string })?.name === 'ZodError') {
+      return validationErrorResponse((error as unknown as { issues?: unknown; errors?: unknown }).issues ?? (error as unknown as { errors?: unknown }).errors);
     }
     return serverErrorResponse(error);
   }
@@ -122,9 +123,48 @@ export async function DELETE(
 
     await connectDB();
 
-    const debt = await Debt.findOneAndDelete({ _id: id, userId: session.user.id });
+    const debt = await Debt.findOne({ _id: id, userId: session.user.id });
     if (!debt) {
       return notFoundResponse();
+    }
+
+    const debtId = new mongoose.Types.ObjectId(id);
+    const userId = new mongoose.Types.ObjectId(session.user.id);
+
+    // Reverse all debt_payment ledger entries for this debt so the dashboard
+    // no longer counts them as expenses after deletion.
+    const paymentEntries = await LedgerEntry.find({
+      userId,
+      type: 'debt_payment',
+      sourceRefId: debtId,
+    });
+
+    const mongoSession = await mongoose.startSession();
+    try {
+      await mongoSession.withTransaction(async () => {
+        for (const entry of paymentEntries) {
+          await LedgerEntry.create(
+            [
+              {
+                userId,
+                type: 'correction',
+                amountIn: entry.amountOut,
+                amountOut: entry.amountIn,
+                date: new Date(),
+                category: entry.category,
+                sourceRefId: entry.sourceRefId,
+                note: `Debt deleted: ${debt.title}`,
+                correctsEntryId: entry._id,
+              },
+            ],
+            { session: mongoSession }
+          );
+        }
+
+      await Debt.findOneAndDelete({ _id: id, userId: session.user!.id }).session(mongoSession);
+      });
+    } finally {
+      await mongoSession.endSession();
     }
 
     return NextResponse.json({ message: 'Debt deleted successfully' });
