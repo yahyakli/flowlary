@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 import connectDB from '../db/mongoose';
 import { LedgerEntry } from '../db/models/LedgerEntry';
-import { MonthlySnapshot, type IMonthlySnapshot } from '../db/models/MonthlySnapshot';
+import { MonthlySnapshot, type IMonthlySnapshot, type IBudgetAlert } from '../db/models/MonthlySnapshot';
+import { Budget } from '../db/models/Budget';
 
 /**
  * Extract YYYY-MM string from a Date
@@ -59,6 +60,26 @@ export async function updateMonthlySnapshot(
   const netBalance = totalIncome - totalExpenses;
   const savingsRate = totalIncome > 0 ? netBalance / totalIncome : 0;
 
+  // Fetch budgets for this user to flag over-budget categories
+  const budgetQuery = Budget.find({ userId: userId.toString() }).lean();
+  if (session) {
+    budgetQuery.session(session);
+  }
+  const budgets = await budgetQuery.exec();
+
+  // Flag categories that exceed their budget for the month
+  const budgetAlerts: IBudgetAlert[] = [];
+  for (const budget of budgets) {
+    const spent = expenseByCategory[budget.category] ?? 0;
+    if (spent > budget.monthlyLimit) {
+      budgetAlerts.push({
+        category: budget.category,
+        spent,
+        limit: budget.monthlyLimit,
+      });
+    }
+  }
+
   // Upsert the snapshot
   const snapshotQuery = MonthlySnapshot.findOneAndUpdate(
     { userId: userId.toString(), month },
@@ -70,6 +91,7 @@ export async function updateMonthlySnapshot(
       netBalance,
       expenseByCategory,
       savingsRate,
+      budgetAlerts,
       updatedAt: new Date(),
     },
     { upsert: true, new: true, session }

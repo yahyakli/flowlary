@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CategoryBreakdownChart, MonthlyTrendChart } from "@/components/dashboard/DashboardCharts";
+import { BudgetStatus } from "@/components/dashboard/BudgetStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils/currency";
 
@@ -220,6 +221,8 @@ function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {selectedMonth ? <BudgetStatus month={selectedMonth} /> : null}
     </section>
   );
 }

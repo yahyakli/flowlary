@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import connectDB from '@/lib/db/mongoose';
 import { LedgerEntry } from '@/lib/db/models/LedgerEntry';
 import { MonthlySnapshot } from '@/lib/db/models/MonthlySnapshot';
+import { Budget } from '@/lib/db/models/Budget';
 import { User } from '@/lib/db/models/User';
 import { updateMonthlySnapshot } from './updateSnapshot';
 import { postLedgerEntry } from './postEntry';
@@ -16,11 +17,18 @@ describe('updateMonthlySnapshot', () => {
   let userId: mongoose.Types.ObjectId;
   let mockSession: Partial<mongoose.ClientSession>;
 
-  beforeEach(() => {
+beforeEach(() => {
     userId = new mongoose.Types.ObjectId();
     mockSession = {
       endSession: vi.fn(),
     };
+    // Default mock: no budgets (prevents real DB calls from Budget.find)
+    vi.spyOn(Budget, 'find').mockReturnValue({
+      lean: vi.fn().mockReturnValue({
+        session: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue([]),
+      }),
+    } as any);
   });
 
   afterEach(() => {
@@ -422,5 +430,126 @@ describe('updateMonthlySnapshot', () => {
     expect(result.totalExpenses).toBe(650);
     expect(result.netBalance).toBe(1850);
     expect(result.savingsRate).toBeCloseTo(0.74, 2);
+  });
+
+  it('should flag categories that exceed their budget', async () => {
+    const dateInMonth = new Date('2024-01-15');
+    const mockEntries = [
+      {
+        userId: userId.toString(),
+        date: new Date('2024-01-10'),
+        type: 'expense' as const,
+        amountIn: 0,
+        amountOut: 200,
+        category: 'Food',
+      },
+      {
+        userId: userId.toString(),
+        date: new Date('2024-01-15'),
+        type: 'expense' as const,
+        amountIn: 0,
+        amountOut: 100,
+        category: 'Transport',
+      },
+    ];
+
+    vi.spyOn(LedgerEntry, 'find').mockReturnValue({
+      lean: vi.fn().mockReturnValue({
+        exec: vi.fn().mockResolvedValue(mockEntries),
+      }),
+    } as any);
+
+    // Mock budgets: Food limit 150 (exceeded), Transport limit 200 (within)
+    vi.spyOn(Budget, 'find').mockReturnValue({
+      lean: vi.fn().mockReturnValue({
+        session: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue([
+          { userId: userId.toString(), category: 'Food', monthlyLimit: 150 },
+          { userId: userId.toString(), category: 'Transport', monthlyLimit: 200 },
+        ]),
+      }),
+    } as any);
+
+    const findOneAndUpdateSpy = vi.spyOn(MonthlySnapshot, 'findOneAndUpdate').mockReturnValue({
+      exec: vi.fn().mockResolvedValue({
+        userId,
+        month: '2024-01',
+        totalIncome: 0,
+        totalExpenses: 300,
+        netBalance: -300,
+        expenseByCategory: { Food: 200, Transport: 100 },
+        savingsRate: 0,
+        budgetAlerts: [{ category: 'Food', spent: 200, limit: 150 }],
+        updatedAt: expect.any(Date),
+      }),
+    } as any);
+
+    const result = await updateMonthlySnapshot(userId, dateInMonth);
+
+    // Verify findOneAndUpdate was called with correct budgetAlerts
+    expect(findOneAndUpdateSpy).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        budgetAlerts: [{ category: 'Food', spent: 200, limit: 150 }],
+      }),
+      expect.any(Object)
+    );
+    expect(result.budgetAlerts).toEqual([{ category: 'Food', spent: 200, limit: 150 }]);
+  });
+
+  it('should not flag categories that are within budget', async () => {
+    const dateInMonth = new Date('2024-01-15');
+    const mockEntries = [
+      {
+        userId: userId.toString(),
+        date: new Date('2024-01-10'),
+        type: 'expense' as const,
+        amountIn: 0,
+        amountOut: 100,
+        category: 'Food',
+      },
+    ];
+
+    vi.spyOn(LedgerEntry, 'find').mockReturnValue({
+      lean: vi.fn().mockReturnValue({
+        exec: vi.fn().mockResolvedValue(mockEntries),
+      }),
+    } as any);
+
+    // Mock budgets: Food limit 200 (within budget)
+    vi.spyOn(Budget, 'find').mockReturnValue({
+      lean: vi.fn().mockReturnValue({
+        session: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue([
+          { userId: userId.toString(), category: 'Food', monthlyLimit: 200 },
+        ]),
+      }),
+    } as any);
+
+    const findOneAndUpdateSpy = vi.spyOn(MonthlySnapshot, 'findOneAndUpdate').mockReturnValue({
+      exec: vi.fn().mockResolvedValue({
+        userId,
+        month: '2024-01',
+        totalIncome: 0,
+        totalExpenses: 100,
+        netBalance: -100,
+        expenseByCategory: { Food: 100 },
+        savingsRate: 0,
+        budgetAlerts: [],
+        updatedAt: expect.any(Date),
+      }),
+    } as any);
+
+    const result = await updateMonthlySnapshot(userId, dateInMonth);
+
+    // Verify budgetAlerts is empty (no categories exceeded)
+    expect(findOneAndUpdateSpy).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        budgetAlerts: [],
+      }),
+      expect.any(Object)
+    );
+    expect(result.budgetAlerts).toEqual([]);
   });
 });
