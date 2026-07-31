@@ -44,8 +44,10 @@ function DashboardPage() {
 
   useEffect(() => {
     const months = monthOptions();
-    const latestMonth = months[0]?.split(":")[0] ?? "";
-    setSelectedMonth(latestMonth);
+    // Default to current month (months[1]) instead of last month (months[0])
+    // so users can easily add income/expenses for the current month or plan ahead.
+    const currentMonth = months[1]?.split(":")[0] ?? months[0]?.split(":")[0] ?? "";
+    setSelectedMonth(currentMonth);
   }, []);
 
   useEffect(() => {
