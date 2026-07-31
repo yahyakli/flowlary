@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CategoryBreakdownChart, MonthlyTrendChart } from "@/components/dashboard/DashboardCharts";
 import { BudgetStatus } from "@/components/dashboard/BudgetStatus";
+import { AddIncomeDialog } from "@/components/dashboard/AddIncomeDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils/currency";
 
@@ -167,14 +168,19 @@ function DashboardPage() {
           </label>
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/60">
-              <p className="text-sm text-slate-500">{stat.label}</p>
-              <p className="mt-3 text-2xl font-semibold text-slate-900 dark:text-slate-50">{stat.value}</p>
-              <p className="mt-2 text-xs text-slate-500">{stat.hint}</p>
-            </div>
-          ))}
+        <div className="mt-6 grid gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {stats.map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+                <p className="text-sm text-slate-500">{stat.label}</p>
+                <p className="mt-3 text-2xl font-semibold text-slate-900 dark:text-slate-50">{stat.value}</p>
+                <p className="mt-2 text-xs text-slate-500">{stat.hint}</p>
+              </div>
+            ))}
+          </div>
+          <div className="w-full sm:max-w-[280px]">
+            <AddIncomeDialog />
+          </div>
         </div>
       </div>
 
