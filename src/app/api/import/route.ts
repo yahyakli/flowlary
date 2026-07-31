@@ -88,10 +88,10 @@ export async function POST(request: Request) {
     const userId = new mongoose.Types.ObjectId(session.user.id);
 
     const incomeRows: Record<string, unknown>[] = incomeSheet
-      ? XLSX.utils.sheet_to_json(incomeSheet).map(normalizeRowKeys)
+      ? (XLSX.utils.sheet_to_json(incomeSheet) as Record<string, unknown>[]).map(normalizeRowKeys)
       : [];
     const expenseRows: Record<string, unknown>[] = expensesSheet
-      ? XLSX.utils.sheet_to_json(expensesSheet).map(normalizeRowKeys)
+      ? (XLSX.utils.sheet_to_json(expensesSheet) as Record<string, unknown>[]).map(normalizeRowKeys)
       : [];
 
     const incomeResults: RowResult[] = [];
