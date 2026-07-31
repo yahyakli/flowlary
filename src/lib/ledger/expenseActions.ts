@@ -29,6 +29,7 @@ export async function createExpenseEntry(
     year: date.getFullYear(),
     tags: [],
     note: data.notes,
+    ...(data.attachmentUrl ? { attachmentUrl: data.attachmentUrl } : {}),
   });
 
   try {

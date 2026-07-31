@@ -36,6 +36,7 @@ export interface IExpense {
   year?: number;
   tags?: string[];
   note?: string;
+  attachmentUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -22,6 +22,7 @@ const expenseSchema = new Schema<IExpense>(
     year: { type: Number, required: true },
     tags: { type: [String], default: [] },
     note: { type: String },
+    attachmentUrl: { type: String },
   },
   {
     timestamps: true,
