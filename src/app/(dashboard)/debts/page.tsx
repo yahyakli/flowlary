@@ -35,23 +35,23 @@ function DebtStatsSkeleton() {
 export default function DebtsPage() {
   const { debts, fetchDebts, deleteDebt, isLoading } = useDebtStore();
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const safeDebts = Array.isArray(debts) ? debts : [];
 
   useEffect(() => {
     fetchDebts();
   }, [fetchDebts]);
-
   const stats = useMemo(() => {
-    const totalDebt = debts.reduce((acc, d) => acc + d.currentBalance, 0);
-    const totalMonthly = debts.reduce((acc, d) => acc + d.monthlyPayment, 0);
-    const avgInterest = debts.length
-      ? debts.reduce((acc, d) => acc + d.interestRate, 0) / debts.length
+    const totalDebt = safeDebts.reduce((acc, d) => acc + (d.currentBalance ?? 0), 0);
+    const totalMonthly = safeDebts.reduce((acc, d) => acc + (d.monthlyPayment ?? 0), 0);
+    const avgInterest = safeDebts.length
+      ? safeDebts.reduce((acc, d) => acc + (d.interestRate ?? 0), 0) / safeDebts.length
       : 0;
-    const activeDebts = debts.filter((d) => !d.isCompleted).length;
+    const activeDebts = safeDebts.filter((d) => !d.isCompleted).length;
 
     return { totalDebt, totalMonthly, avgInterest, activeDebts };
-  }, [debts]);
+  }, [safeDebts]);
 
-  if (isLoading && debts.length === 0) {
+  if (isLoading && safeDebts.length === 0) {
     return (
       <section className="space-y-10">
         {/* Hero Skeleton */}
@@ -149,7 +149,7 @@ export default function DebtsPage() {
         <div className="lg:col-span-2 space-y-6">
           <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50">Active Debts</h3>
 
-          {debts.length === 0 ? (
+          {safeDebts.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 p-12 text-center dark:border-slate-700">
               <div className="flex size-16 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 dark:bg-slate-950">
                 <CreditCard className="size-8" />
@@ -158,7 +158,7 @@ export default function DebtsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {debts.map((debt) => {
+              {safeDebts.map((debt) => {
                 const id = debt._id ? (debt._id as unknown as string) : Math.random().toString();
                 const originalAmount = debt.originalAmount ?? debt.totalAmount ?? 0;
                 const currentBalance = debt.currentBalance ?? debt.remainingAmount ?? 0;
@@ -316,7 +316,7 @@ export default function DebtsPage() {
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Total Paid So Far</p>
                   <p className="mt-1 text-2xl font-black text-emerald-500">
                     {formatCurrencyMock(
-                      debts.reduce((acc, d) => {
+                      safeDebts.reduce((acc, d) => {
                         const total = d.totalAmount ?? 0;
                         const remaining = d.remainingAmount ?? 0;
                         return acc + (total - remaining);
@@ -338,7 +338,7 @@ export default function DebtsPage() {
           <div className="rounded-[1.5rem] border border-slate-300 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/50">
             <h4 className="font-bold text-slate-900 dark:text-slate-50">Smart Tip</h4>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-              {debts.length > 0
+              {safeDebts.length > 0
                 ? "Focus on debts with the highest interest rate first (Avalanche Method) to minimize total interest paid."
                 : "No active debts — you're in great shape! Keep building your savings."}
             </p>

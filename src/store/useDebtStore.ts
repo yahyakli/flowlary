@@ -3,6 +3,23 @@ import { IDebt } from '@/lib/db/types';
 import { DebtSchema } from '@/lib/validations/debt.schema';
 import { toast } from 'sonner';
 
+function getDebtId(value: unknown): string {
+  if (value && typeof value === 'object' && '_id' in value) {
+    const id = (value as { _id: unknown })._id;
+    if (typeof id === 'string') return id;
+    if (id && typeof id.toString === 'function') return id.toString();
+  }
+  return '';
+}
+
+function unwrapDebtResponse(payload: unknown): IDebt | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const record = payload as Record<string, unknown>;
+  const debt = record.debt ?? record;
+  if (debt && typeof debt === 'object' && '_id' in debt) return debt as IDebt;
+  return null;
+}
+
 interface DebtState {
   debts: IDebt[];
   isLoading: boolean;
@@ -11,10 +28,12 @@ interface DebtState {
   addDebt: (debt: DebtSchema) => Promise<void>;
   updateDebt: (id: string, debt: Partial<DebtSchema>) => Promise<void>;
   deleteDebt: (id: string) => Promise<void>;
+  safeDebts: IDebt[];
 }
 
 export const useDebtStore = create<DebtState>((set, get) => ({
   debts: [],
+  safeDebts: [],
   isLoading: true,
   error: null,
 
@@ -25,9 +44,15 @@ export const useDebtStore = create<DebtState>((set, get) => ({
       if (!response.ok) throw new Error('Failed to fetch debts');
 
       const data = await response.json();
-      set({ debts: data || [], isLoading: false });
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false });
+      const rawDebts = Array.isArray((data as Record<string, unknown>).debts)
+        ? ((data as Record<string, unknown>).debts as IDebt[])
+        : Array.isArray(data)
+          ? (data as IDebt[])
+          : [];
+      set({ debts: rawDebts, safeDebts: rawDebts, isLoading: false });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      set({ error: message, isLoading: false });
       toast.error('Could not load debts');
     }
   },
@@ -43,18 +68,26 @@ export const useDebtStore = create<DebtState>((set, get) => ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add debt');
+        const message = errorData && typeof errorData === 'object' && 'error' in errorData
+          ? String((errorData as Record<string, unknown>).error)
+          : 'Failed to add debt';
+        throw new Error(message);
       }
 
-      const newDebt = await response.json();
+      const payload = await response.json();
+      const newDebt = unwrapDebtResponse(payload);
+      if (!newDebt) throw new Error('Invalid response from server');
+
       set((state) => ({
         debts: [newDebt, ...state.debts],
+        safeDebts: [newDebt, ...state.safeDebts],
         isLoading: false,
       }));
       toast.success('Debt added successfully');
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false });
-      toast.error(error.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      set({ error: message, isLoading: false });
+      toast.error(message);
     }
   },
 
@@ -69,20 +102,30 @@ export const useDebtStore = create<DebtState>((set, get) => ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update debt');
+        const message = errorData && typeof errorData === 'object' && 'error' in errorData
+          ? String((errorData as Record<string, unknown>).error)
+          : 'Failed to update debt';
+        throw new Error(message);
       }
 
-      const updatedDebt = await response.json();
+      const payload = await response.json();
+      const updatedDebt = unwrapDebtResponse(payload);
+      if (!updatedDebt) throw new Error('Invalid response from server');
+
       set((state) => ({
-        debts: state.debts.map((d) =>
-          (d._id as any).toString() === id ? updatedDebt : d
+        debts: state.debts.map((entry) =>
+          getDebtId(entry) === id ? updatedDebt : entry
+        ),
+        safeDebts: state.safeDebts.map((entry) =>
+          getDebtId(entry) === id ? updatedDebt : entry
         ),
         isLoading: false,
       }));
       toast.success('Debt updated successfully');
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false });
-      toast.error(error.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      set({ error: message, isLoading: false });
+      toast.error(message);
     }
   },
 
@@ -95,11 +138,13 @@ export const useDebtStore = create<DebtState>((set, get) => ({
       if (!response.ok) throw new Error('Failed to delete debt');
 
       set((state) => ({
-        debts: state.debts.filter((d) => (d._id as any).toString() !== id),
+        debts: state.debts.filter((entry) => getDebtId(entry) !== id),
+        safeDebts: state.safeDebts.filter((entry) => getDebtId(entry) !== id),
       }));
       toast.success('Debt deleted');
-    } catch (error: any) {
-      toast.error('Could not delete debt');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(message);
     }
   },
 }));
