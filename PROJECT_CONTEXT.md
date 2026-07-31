@@ -17,12 +17,27 @@
 
 ---
 
+## Architecture: Ledger-First (Source of Truth)
+
+Flowlary uses a **ledger-first architecture** as the current source of truth for all financial state. All financial state (running balance, debt balances, goal savings, monthly dashboard totals) is computed **once at write time** by a posting service and stored with the affected record. Read paths use these stored values and period snapshots; they do **not** recompute aggregates from the full transaction history at read time.
+
+**Key principles:**
+- **Write-time computation:** The posting service (`src/lib/ledger/postEntry.ts`) calculates balances atomically when recording a ledger entry, within a MongoDB transaction.
+- **Append-only ledger:** Ledger entries are never mutated or deleted. Edits and deletions append correcting entries that reverse the original effect.
+- **Monthly snapshots:** `MonthlySnapshot` documents store pre-computed totals (income, expenses, net balance, expense-by-category) for each month. Dashboard reads use these snapshots, not live aggregation.
+- **No live recomputation:** Read paths must not recompute aggregates from the full ledger history. This avoids the class of bugs where results depend on every historical row and every formula range.
+
+> **Contributors:** Do not reintroduce live recomputation of aggregates from the full ledger on read paths. All financial state must be updated at write time by the posting service. See [`docs/adr/0001-ledger-first-architecture.md`](docs/adr/0001-ledger-first-architecture.md) for the full decision record.
+
+---
+
 ## Tech Stack
 
 ### Frontend
 | Package | Purpose |
 |---|---|
-| `next` 14 (App Router) | Framework — SSR, API routes, routing |
+| `next` 16.2.3 (App Router) | Framework — SSR, API routes, routing |
+| `react` 19.2.4 | UI library |
 | `typescript` 5.x | Full type safety end-to-end |
 | `tailwindcss` 3.x | Utility-first CSS |
 | `shadcn/ui` | Component library (Radix-based, fully customizable) |
@@ -42,7 +57,8 @@
 | Package | Purpose |
 |---|---|
 | MongoDB Atlas (free M0 tier) | Database — 512MB free, no credit card |
-| `mongoose` | ODM — typed schemas, models, queries |
+| `mongoose` 9.x | ODM — typed schemas, models, queries |
+| `mongodb` 6.x | Native driver (GridFS for file attachments) |
 | `next-auth` v5 | Authentication with MongoDB adapter |
 | `bcryptjs` | Password hashing |
 
@@ -52,6 +68,13 @@
 | `ai` (Vercel AI SDK) | Unified streaming interface for AI providers |
 | `@ai-sdk/groq` | Groq provider adapter |
 | Groq API — `llama-3.3-70b-versatile` | Primary AI — free tier, no credit card required |
+
+### Testing
+| Package | Purpose |
+|---|---|
+| `vitest` | Unit & integration tests |
+| `@playwright/test` | End-to-end tests |
+| `@axe-core/playwright` | Automated accessibility scans |
 
 ### Deployment (Total cost: $0/month)
 | Service | Tier |
@@ -63,6 +86,8 @@
 ---
 
 ## Environment Variables
+
+See `.env.example` for the full list. Key variables:
 
 ```env
 # .env.local
@@ -76,6 +101,9 @@ NEXTAUTH_URL=http://localhost:3000
 
 # Groq AI
 GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Cron (recurring rules endpoint authorization)
+CRON_SECRET=replace_with_a_random_string
 ```
 
 ---
@@ -84,82 +112,107 @@ GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ```
 flowlary/
-├── app/
-│   ├── (auth)/
-│   │   ├── login/page.tsx
-│   │   └── register/page.tsx
-│   ├── (dashboard)/
-│   │   ├── layout.tsx            ← sidebar + topbar shell
-│   │   ├── page.tsx              ← main dashboard overview
-│   │   ├── expenses/page.tsx     ← fixed & variable expenses
-│   │   ├── goals/page.tsx        ← savings goals tracker
-│   │   ├── debts/page.tsx        ← debt tracker
-│   │   ├── history/page.tsx      ← monthly history & trends
-│   │   └── settings/page.tsx     ← profile, currency, preferences
-│   ├── api/
-│   │   ├── auth/[...nextauth]/route.ts
-│   │   ├── salary/route.ts       ← GET, POST, PUT salary
-│   │   ├── expenses/route.ts     ← CRUD expenses
-│   │   ├── goals/route.ts        ← CRUD goals
-│   │   ├── debts/route.ts        ← CRUD debts
-│   │   └── ai/
-│   │       ├── chat/route.ts     ← streaming AI chat endpoint
-│   │       └── insights/route.ts ← proactive AI analysis endpoint
-│   ├── globals.css
-│   └── layout.tsx
+├── src/
+│   ├── app/
+│   │   ├── (auth)/
+│   │   │   ├── login/page.tsx
+│   │   │   └── register/page.tsx
+│   │   ├── (dashboard)/
+│   │   │   ├── layout.tsx            ← sidebar + topbar shell
+│   │   │   ├── dashboard/page.tsx    ← main dashboard overview (reads MonthlySnapshot)
+│   │   │   ├── expenses/page.tsx     ← fixed & variable expenses
+│   │   │   ├── goals/page.tsx        ← savings goals tracker
+│   │   │   ├── debts/page.tsx        ← debt tracker
+│   │   │   ├── history/page.tsx      ← monthly history & trends
+│   │   │   └── settings/page.tsx     ← profile, currency, preferences
+│   │   ├── api/
+│   │   │   ├── auth/[...nextauth]/route.ts
+│   │   │   ├── auth/register/route.ts
+│   │   │   ├── salary/route.ts       ← GET, POST, PUT salary
+│   │   │   ├── income/route.ts       ← CRUD income
+│   │   │   ├── expenses/route.ts     ← CRUD expenses (+ attachment upload)
+│   │   │   ├── goals/route.ts        ← CRUD goals
+│   │   │   ├── debts/route.ts        ← CRUD debts (+ pay endpoint)
+│   │   │   ├── budgets/route.ts      ← CRUD budgets
+│   │   │   ├── drafts/route.ts       ← pending draft confirmation
+│   │   │   ├── recurring-rules/route.ts ← recurring rule CRUD
+│   │   │   ├── cron/recurring/route.ts  ← scheduled recurring processing
+│   │   │   ├── dashboard/route.ts    ← reads MonthlySnapshot (no live aggregation)
+│   │   │   ├── dashboard/trend/route.ts
+│   │   │   ├── files/[id]/route.ts   ← serves GridFS attachments
+│   │   │   └── ai/
+│   │   │       ├── chat/route.ts     ← streaming AI chat endpoint
+│   │   │       └── insights/route.ts ← proactive AI analysis endpoint
+│   │   ├── globals.css
+│   │   └── layout.tsx
+│   │
+│   ├── components/
+│   │   ├── ui/                       ← shadcn auto-generated components
+│   │   ├── dashboard/                ← dashboard charts, dialogs, summary
+│   │   ├── expenses/                 ← expense dialogs, transaction lists
+│   │   ├── debts/                    ← debt dialogs
+│   │   ├── goals/                    ← goal dialogs
+│   │   └── layout/                   ← Sidebar, Navbar, Footer, ScrollToTop
+│   │
+│   ├── lib/
+│   │   ├── db/
+│   │   │   ├── mongoose.ts           ← MongoDB connection singleton
+│   │   │   ├── models/
+│   │   │   │   ├── User.ts
+│   │   │   │   ├── Salary.ts
+│   │   │   │   ├── Income.ts
+│   │   │   │   ├── Expense.ts
+│   │   │   │   ├── Goal.ts
+│   │   │   │   ├── Debt.ts
+│   │   │   │   ├── Budget.ts
+│   │   │   │   ├── LedgerEntry.ts    ← append-only ledger
+│   │   │   │   ├── MonthlySnapshot.ts ← pre-computed monthly totals
+│   │   │   │   ├── RecurringRule.ts
+│   │   │   │   ├── PendingDraft.ts
+│   │   │   │   └── AiInsightsCache.ts
+│   │   │   └── types/                ← TypeScript interfaces for all models
+│   │   ├── ledger/                   ← POSTING SERVICE (write-time computation)
+│   │   │   ├── postEntry.ts          ← appends ledger entry + updates snapshot (transactional)
+│   │   │   ├── updateSnapshot.ts     ← updates MonthlySnapshot
+│   │   │   ├── expenseActions.ts     ← creates expense + posts ledger entry
+│   │   │   ├── incomeActions.ts      ← creates income + posts ledger entry
+│   │   │   ├── debtActions.ts        ← records debt payment + posts ledger entry
+│   │   │   ├── goalActions.ts        ← records goal contribution + posts ledger entry
+│   │   │   └── corrections.ts        ← append-only correcting entries for edits/deletions
+│   │   ├── recurring/               ← recurring rule processing
+│   │   ├── storage/                  ← GridFS file storage (expense attachments)
+│   │   ├── ai/
+│   │   │   ├── groq.ts               ← Groq provider config
+│   │   │   ├── prompts.ts            ← all system prompts
+│   │   │   └── rate-limit.ts         ← in-memory rate limiter
+│   │   ├── validations/              ← Zod schemas for all entities
+│   │   └── utils/
+│   │       ├── currency.ts           ← format currencies
+│   │       ├── calculations.ts       ← health score, projections
+│   │       └── optimistic.ts         ← optimistic update helpers
+│   │
+│   └── store/                        ← Zustand stores (UI state + cached data)
+│       ├── useSalaryStore.ts
+│       ├── useExpenseStore.ts
+│       ├── useIncomeStore.ts
+│       ├── useGoalStore.ts
+│       ├── useDebtStore.ts
+│       ├── useBudgetStore.ts
+│       └── useAIStore.ts
 │
-├── components/
-│   ├── ui/                       ← shadcn auto-generated components
-│   ├── dashboard/
-│   │   ├── SalaryOverview.tsx    ← top card: salary, committed, free
-│   │   ├── BudgetDonut.tsx       ← donut chart: budget breakdown
-│   │   ├── SpendingChart.tsx     ← bar chart: spending by category
-│   │   ├── GoalsProgress.tsx     ← progress bars for savings goals
-│   │   ├── HealthScore.tsx       ← AI-calculated financial health 0-100
-│   │   └── AIInsightCard.tsx     ← proactive AI tip of the day
-│   ├── ai/
-│   │   └── CopilotChat.tsx       ← floating chat panel (Groq streaming)
-│   ├── expenses/
-│   │   ├── ExpenseForm.tsx       ← RHF + Zod form in shadcn Sheet
-│   │   └── ExpenseList.tsx
-│   ├── goals/
-│   │   ├── GoalCard.tsx
-│   │   └── GoalForm.tsx
-│   └── layout/
-│       ├── Sidebar.tsx
-│       └── Topbar.tsx
-│
-├── lib/
-│   ├── db/
-│   │   ├── mongoose.ts           ← MongoDB connection singleton
-│   │   └── models/
-│   │       ├── User.ts
-│   │       ├── Salary.ts
-│   │       ├── Expense.ts
-│   │       ├── Goal.ts
-│   │       └── Debt.ts
-│   ├── ai/
-│   │   ├── groq.ts               ← Groq provider config
-│   │   └── prompts.ts            ← all system prompts
-│   ├── validations/
-│   │   ├── salary.schema.ts      ← Zod schemas
-│   │   ├── expense.schema.ts
-│   │   └── goal.schema.ts
-│   └── utils/
-│       ├── currency.ts           ← format, convert currencies
-│       └── calculations.ts       ← health score, projections
-│
-├── store/
-│   ├── useSalaryStore.ts         ← Zustand stores
-│   ├── useExpenseStore.ts
-│   └── useAIStore.ts
-│
-└── middleware.ts                 ← NextAuth route protection
+├── e2e/                              ← Playwright e2e + axe-core accessibility tests
+├── docs/
+│   ├── adr/
+│   │   └── 0001-ledger-first-architecture.md  ← architectural decision record
+│   └── accessibility-audit.md
+└── playwright.config.ts
 ```
 
 ---
 
 ## Database Models (Mongoose + TypeScript)
+
+> **Note:** The models below are summaries. See `src/lib/db/types/` for the authoritative TypeScript interfaces and `src/lib/db/models/` for the Mongoose schemas.
 
 ### User
 ```typescript
@@ -168,7 +221,7 @@ interface IUser {
   name: string
   email: string                        // unique, indexed
   passwordHash: string
-  currency: string                     // default: 'USD'
+  currency: string                     // default: 'MAD'
   locale: string                       // default: 'en-US'
   createdAt: Date
   updatedAt: Date
@@ -191,49 +244,43 @@ interface ISalary {
 ```typescript
 interface IExpense {
   _id: ObjectId
-  userId: ObjectId                     // ref: User
-  title: string
-  amount: number
+  userId: string
+  date: Date
   category: ExpenseCategory
-  type: 'fixed' | 'variable'
-  isRecurring: boolean                 // fixed expenses are always recurring
+  description: string
+  amount: number
+  notes?: string
+  title?: string
+  type?: 'fixed' | 'variable'
+  isRecurring?: boolean
   dueDay?: number                      // day of month (1-31), for fixed expenses
-  month: number                        // 1-12
-  year: number
-  tags: string[]
+  month?: number                       // 1-12
+  year?: number
+  tags?: string[]
   note?: string
+  attachmentUrl?: string               // GridFS attachment URL (optional)
   createdAt: Date
+  updatedAt: Date
 }
-
-type ExpenseCategory =
-  | 'housing'        // rent, mortgage
-  | 'utilities'      // electricity, water, internet, phone
-  | 'subscriptions'  // Netflix, gym, software
-  | 'transport'      // fuel, public transport, ride-share
-  | 'food'           // groceries, restaurants
-  | 'healthcare'     // doctor, pharmacy, insurance
-  | 'education'      // courses, books, tuition
-  | 'entertainment'  // outings, hobbies
-  | 'clothing'
-  | 'personal'       // haircut, cosmetics
-  | 'family'         // kids, parents support
-  | 'other'
 ```
 
 ### Goal
 ```typescript
 interface IGoal {
   _id: ObjectId
-  userId: ObjectId                     // ref: User
+  userId: string
+  name: string
   title: string
   targetAmount: number
-  savedAmount: number                  // updated as user logs contributions
-  deadline?: Date
-  monthlyContribution: number          // how much to set aside per month
-  icon: string                         // lucide icon name e.g. 'plane', 'car', 'home'
-  color: string                        // tailwind color e.g. 'blue', 'green'
-  isCompleted: boolean
+  currentSaved: number                 // updated at write time by posting service
+  savedAmount?: number
+  deadline: Date
+  monthlyContribution?: number
+  icon?: string
+  color?: string
+  isCompleted?: boolean
   createdAt: Date
+  updatedAt: Date
 }
 ```
 
@@ -241,16 +288,50 @@ interface IGoal {
 ```typescript
 interface IDebt {
   _id: ObjectId
-  userId: ObjectId                     // ref: User
+  userId: string
   title: string
   totalAmount: number
   remainingAmount: number
+  currentBalance: number               // updated at write time by posting service
   monthlyPayment: number
-  interestRate?: number                // annual percentage (optional)
-  dueDay: number                       // day of month payment is due
+  interestRate: number
+  dueDay: number
   lender?: string
   isCompleted: boolean
   createdAt: Date
+  updatedAt: Date
+}
+```
+
+### LedgerEntry (append-only)
+```typescript
+interface ILedgerEntry {
+  _id: ObjectId
+  userId: ObjectId
+  type: 'income' | 'expense' | 'debt_payment' | 'goal_contribution' | 'correction'
+  amountIn?: number
+  amountOut?: number
+  resultingBalance: number             // running balance after this entry
+  date: Date
+  category?: string
+  sourceRefId?: ObjectId               // ref to the source record (expense, debt, etc.)
+  note?: string
+  createdAt: Date
+}
+```
+
+### MonthlySnapshot (pre-computed by posting service)
+```typescript
+interface IMonthlySnapshot {
+  _id: ObjectId
+  userId: string
+  month: string                        // 'YYYY-MM'
+  totalIncome: number
+  totalExpenses: number
+  netBalance: number
+  expenseByCategory: Record<string, number>
+  savingsRate: number
+  updatedAt: Date
 }
 ```
 
@@ -264,7 +345,7 @@ interface IDebt {
 3. Go to API Keys → Create key
 4. Copy to `.env.local` as `GROQ_API_KEY`
 
-### Provider Setup (`lib/ai/groq.ts`)
+### Provider Setup (`src/lib/ai/groq.ts`)
 ```typescript
 import { createGroq } from '@ai-sdk/groq'
 
@@ -275,7 +356,7 @@ export const groq = createGroq({
 export const groqModel = groq('llama-3.3-70b-versatile')
 ```
 
-### Streaming Chat API Route (`app/api/ai/chat/route.ts`)
+### Streaming Chat API Route (`src/app/api/ai/chat/route.ts`)
 ```typescript
 import { streamText } from 'ai'
 import { groqModel } from '@/lib/ai/groq'
@@ -299,66 +380,6 @@ export async function POST(req: Request) {
 }
 ```
 
-### System Prompts (`lib/ai/prompts.ts`)
-```typescript
-interface UserContext {
-  currency: string
-  salary: number
-  totalFixed: number
-  fixedPercent: number
-  totalVariable: number
-  remaining: number
-  healthScore: number
-  goals: Array<{ title: string; progress: number }>
-  debts: Array<{ title: string; monthlyPayment: number }>
-}
-
-export function buildChatSystemPrompt(ctx: UserContext): string {
-  return `
-You are Flowlary Copilot, a personal financial advisor AI embedded in a salary management app.
-
-USER FINANCIAL CONTEXT:
-- Monthly net salary: ${ctx.currency} ${ctx.salary}
-- Fixed monthly costs: ${ctx.currency} ${ctx.totalFixed} (${ctx.fixedPercent}% of salary)
-- Variable spending this month: ${ctx.currency} ${ctx.totalVariable}
-- Remaining free budget: ${ctx.currency} ${ctx.remaining}
-- Active savings goals: ${ctx.goals.map(g => `${g.title} (${g.progress}% complete)`).join(', ')}
-- Active debts: ${ctx.debts.map(d => `${d.title} — ${ctx.currency} ${d.monthlyPayment}/mo`).join(', ')}
-- Financial health score: ${ctx.healthScore}/100
-
-YOUR ROLE:
-- Answer questions about whether the user can afford things
-- Suggest how to optimize their budget
-- Give concrete, actionable advice (not generic tips)
-- Be encouraging but realistic
-- Keep responses concise (2-4 sentences for simple questions, max 6 for complex)
-- Always use the user's currency (${ctx.currency})
-- Never recommend specific financial products or investments
-  `.trim()
-}
-
-export function buildInsightsPrompt(ctx: UserContext): string {
-  return `
-Analyze this user's financial data and return a JSON object with insights.
-
-DATA:
-${JSON.stringify(ctx, null, 2)}
-
-Return ONLY valid JSON, no markdown, no explanation:
-{
-  "healthScore": number (0-100),
-  "headline": "one sharp sentence about their financial situation",
-  "insights": [
-    { "type": "warning" | "tip" | "achievement", "message": "specific insight" }
-  ],
-  "suggestion": "one specific actionable thing they can do this month"
-}
-
-Rules: max 3 insights, be specific not generic, use their actual numbers.
-  `.trim()
-}
-```
-
 ### AI Features in the App
 | Feature | Trigger | Output |
 |---|---|---|
@@ -369,72 +390,94 @@ Rules: max 3 insights, be specific not generic, use their actual numbers.
 
 ---
 
-## Key Business Logic (`lib/utils/calculations.ts`)
+## Key Business Logic
+
+### Posting Service (`src/lib/ledger/`)
+
+The posting service is the **single entry point** for all financial state changes. It appends a `LedgerEntry` and updates the affected record + `MonthlySnapshot` within a MongoDB transaction.
 
 ```typescript
-// Spendable budget after all fixed commitments
-export const getFreeBudget = (
-  salary: number,
-  fixedExpenses: IExpense[],
-  debts: IDebt[]
-): number =>
-  salary
-  - fixedExpenses.reduce((sum, e) => sum + e.amount, 0)
-  - debts.reduce((sum, d) => sum + d.monthlyPayment, 0)
+// src/lib/ledger/postEntry.ts — appends a ledger entry and updates the monthly snapshot
+export async function postLedgerEntry(
+  userId: ObjectId,
+  entryInput: LedgerEntryInput,
+  options?: { session?: ClientSession }
+): Promise<ILedgerEntry> {
+  // 1. Acquire a per-user write lock (User.updateOne) to serialize concurrent postings
+  // 2. Read the previous ledger entry to get the running balance
+  // 3. Create the new entry with resultingBalance = prevBalance + amountIn - amountOut
+  // 4. Update the MonthlySnapshot for the entry's month
+  // All within a single transaction (requires MongoDB replica set)
+}
+```
 
+```typescript
+// src/lib/ledger/expenseActions.ts — creates an expense and posts a ledger entry
+export async function createExpenseEntry(userId: ObjectId, data: ExpenseSchema): Promise<IExpense> {
+  // 1. Create the Expense document
+  // 2. Post a ledger entry (type: 'expense', amountOut: data.amount)
+  // 3. If the ledger posting fails, delete the Expense to maintain consistency
+}
+```
+
+> **Important:** Financial state (balances, debt progress, goal savings, dashboard totals) is computed at write time by the posting service and stored in `MonthlySnapshot` documents. Read paths (e.g., `/api/dashboard`) read these stored values — they do **not** recompute from the full ledger history.
+
+### Utility Calculations (`src/lib/utils/calculations.ts`)
+
+```typescript
 // Health score 0-100
 export const calculateHealthScore = (data: {
-  savingsRate: number        // % of salary going to goals (0-100)
-  debtToIncomeRatio: number  // (total monthly debt payments / salary) * 100
-  budgetAdherence: number    // % of months within budget (0-100)
+  savingsRate: number
+  debtToIncomeRatio: number
+  budgetAdherence: number
   hasEmergencyFund: boolean
 }): number => {
   let score = 0
-  score += Math.min(data.savingsRate * 2, 30)           // max 30 pts — saving is key
-  score += Math.max(30 - data.debtToIncomeRatio, 0)     // max 30 pts — low debt = good
-  score += Math.round(data.budgetAdherence * 0.3)       // max 30 pts — consistency
-  score += data.hasEmergencyFund ? 10 : 0               // 10 pts bonus
+  score += Math.min(data.savingsRate * 2, 30)
+  score += Math.max(30 - data.debtToIncomeRatio, 0)
+  score += Math.round(data.budgetAdherence * 0.3)
+  score += data.hasEmergencyFund ? 10 : 0
   return Math.min(Math.round(score), 100)
 }
+```
 
-// Months until a goal is reached at current contribution rate
-export const monthsToGoal = (goal: IGoal): number =>
-  goal.monthlyContribution > 0
-    ? Math.ceil((goal.targetAmount - goal.savedAmount) / goal.monthlyContribution)
-    : Infinity
+### Currency Formatting (`src/lib/utils/currency.ts`)
 
-// Format currency using user locale
-export const formatCurrency = (amount: number, currency: string, locale: string): string =>
-  new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount)
+```typescript
+export function formatCurrency(value: number | string | null | undefined): string {
+  // Uses Intl.NumberFormat with 'en-US' locale and 'USD' currency
+  // Returns '—' for non-finite values
+}
 ```
 
 ---
 
 ## Pages Overview
 
-### `/` — Dashboard
-- SalaryOverview card: net salary / committed / free budget
-- BudgetDonut: visual breakdown (fixed / variable / savings / free)
-- AIInsightCard: one proactive insight, refreshed every 24h
-- HealthScore: circular 0-100 indicator
-- GoalsProgress: progress bars per active goal
-- SpendingChart: bar chart spending by category this month
-- QuickAdd floating button: fast expense entry
+### `/` — Landing Page
+- Public marketing page with feature highlights
+- Redirects authenticated users to `/dashboard`
+
+### `/dashboard` — Dashboard Overview
+- Reads `MonthlySnapshot` for the selected month (no live aggregation)
+- Total Income, Total Expenses, Net Balance, Savings Rate stat cards
+- Category breakdown chart and 6-month trend chart
+- Add Income dialog for quick income entry
 
 ### `/expenses` — Expense Manager
-- Tab toggle: Fixed vs Variable
-- Expense list with category icons, amounts, due dates
-- Add / Edit / Delete via RHF + Zod form in a shadcn Sheet
-- Running total vs budget per category (progress bar + color indicator)
+- Fixed & variable expense stats for the current month
+- Transaction list with search
+- Add / Edit / Delete via RHF + Zod form in a dialog
+- Category breakdown donut chart
 
 ### `/goals` — Savings Goals
 - Grid of goal cards with progress bars and projected completion date
 - Add contribution, edit goal, mark complete
-- AI hint: "At current rate you'll reach this in N months"
 
 ### `/debts` — Debt Tracker
 - List: remaining balance, monthly payment, due day, payoff timeline
 - Visual payoff progress bar
+- One-click "Pay" button (pays min(balance, monthlyPayment))
 
 ### `/history` — Monthly History
 - Month/year selector
@@ -452,7 +495,7 @@ export const formatCurrency = (amount: number, currency: string, locale: string)
 ## Auth Flow (NextAuth v5 with Credentials)
 
 ```typescript
-// lib/auth.ts
+// src/lib/auth.ts
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import { MongoDBAdapter } from '@auth/mongodb-adapter'
@@ -471,14 +514,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 })
 ```
 
-```typescript
-// middleware.ts — protect all dashboard and API routes
-export { auth as middleware } from '@/lib/auth'
-export const config = {
-  matcher: ['/(dashboard)/:path*', '/api/salary/:path*', '/api/expenses/:path*', '/api/goals/:path*', '/api/debts/:path*', '/api/ai/:path*'],
-}
-```
-
 ---
 
 ## Coding Conventions
@@ -492,6 +527,7 @@ export const config = {
 - Currency always formatted via `Intl.NumberFormat`, never string concatenation
 - `process.env` values accessed only server-side (API routes, server components)
 - Zustand stores hold UI state and cached data; MongoDB is always source of truth
+- **Financial state is computed at write time by the posting service (`src/lib/ledger/`), not at read time.** Dashboard reads use `MonthlySnapshot` documents. Never reintroduce live recomputation from the full ledger history.
 - shadcn components added via `npx shadcn@latest add <component-name>`
 
 ---
@@ -519,21 +555,14 @@ npm install
 # Run dev server
 npm run dev
 
-# Add a shadcn component
-npx shadcn@latest add button
-npx shadcn@latest add card
-npx shadcn@latest add sheet
-npx shadcn@latest add dialog
-npx shadcn@latest add form
-npx shadcn@latest add input
-npx shadcn@latest add select
-npx shadcn@latest add progress
-npx shadcn@latest add tabs
-npx shadcn@latest add badge
-npx shadcn@latest add avatar
-npx shadcn@latest add dropdown-menu
-npx shadcn@latest add separator
-npx shadcn@latest add skeleton
+# Unit & integration tests
+npm test
+
+# End-to-end tests (requires dev server running on :3000)
+npm run test:e2e
+
+# Lint
+npm run lint
 
 # Build for production
 npm run build
@@ -541,5 +570,5 @@ npm run build
 
 ---
 
-*Last updated: April 2026*
-*Stack: Next.js 14 · TypeScript 5 · Tailwind CSS 3 · shadcn/ui · Mongoose 8 · NextAuth v5 · Groq llama-3.3-70b · Vercel AI SDK*
+*Last updated: July 2026*
+*Stack: Next.js 16.2.3 · React 19.2.4 · TypeScript 5 · Tailwind CSS 3 · shadcn/ui · Mongoose 9 · NextAuth v5 · Groq llama-3.3-70b · Vercel AI SDK*

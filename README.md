@@ -1,43 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Flowlary
 
-## Developer onboarding
+Privacy-first, salary-driven personal finance app with an AI copilot. Track income, expenses, goals, and debts — all manual entry, no bank linking required.
+
+## Architecture
+
+Flowlary uses a **ledger-first architecture** — all financial state (balances, debt progress, goal savings, dashboard totals) is computed once at write time by a posting service and stored with the affected record. Read paths use these stored values and period snapshots; they do **not** recompute aggregates from the full transaction history at read time.
+
+This avoids the class of bugs where live recomputation depends on every historical row and every formula range (the original Excel version had a doubling bug from an unbounded `SUMIFS` reference). Ledger entries are append-only; edits and deletions append correcting entries rather than mutating originals.
+
+See [`docs/adr/0001-ledger-first-architecture.md`](docs/adr/0001-ledger-first-architecture.md) for the full architectural decision record.
+
+> **Contributors:** Do not reintroduce live recomputation of aggregates from the full ledger on read paths. All financial state must be updated at write time by the posting service (`src/lib/ledger/`). Dashboard reads use `MonthlySnapshot` documents, not ad-hoc aggregation queries.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16.2.3 (App Router) |
+| UI | React 19.2.4, TypeScript 5.x, TailwindCSS 3.x, shadcn/ui |
+| Database | MongoDB Atlas (free M0 tier) via Mongoose 9.x |
+| Auth | NextAuth (Auth.js) v5 with MongoDB adapter + credentials provider |
+| AI | Groq (`llama-3.3-70b-versatile`) via Vercel AI SDK |
+| State | Zustand (client), MongoDB (source of truth) |
+| Testing | Vitest (unit/integration), Playwright + axe-core (e2e/accessibility) |
+| Deployment | Vercel (free hobby tier) |
+
+## Developer Onboarding
 
 1. Copy `.env.example` to `.env.local` and replace the placeholders with your local MongoDB, Auth.js, and Groq credentials.
-2. Install dependencies with `npm install`.
-3. Start the development server with `npm run dev`.
-4. Run the test suite with `npm test`.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+4. Open [http://localhost:3000](http://localhost:3000).
 
-## Getting Started
-
-First, run the development server:
+## Testing
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Unit & integration tests (Vitest)
+npm test
+
+# End-to-end tests (Playwright) — requires dev server running on :3000
+npm run test:e2e
+
+# Lint
+npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+For e2e tests, first install the Playwright browser:
+```bash
+npx playwright install chromium
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+See [`.env.example`](.env.example) for all required and optional variables. Key ones:
 
-## Learn More
+| Variable | Purpose |
+|----------|---------|
+| `MONGODB_URI` | MongoDB Atlas connection string |
+| `NEXTAUTH_SECRET` / `AUTH_SECRET` | Session signing secret |
+| `NEXTAUTH_URL` | Base URL for callbacks |
+| `GROQ_API_KEY` | Server-side Groq API key |
+| `CRON_SECRET` | Authorizes the recurring-rules cron endpoint |
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+├── app/
+│   ├── (auth)/              # Login & register pages
+│   ├── (dashboard)/         # Dashboard, expenses, goals, debts, history, settings
+│   ├── api/                 # API routes (auth, salary, expenses, goals, debts, income, budgets, drafts, recurring-rules, ai, dashboard, cron)
+│   └── layout.tsx           # Root layout
+├── components/              # UI components (dashboard, expenses, debts, goals, layout, ui)
+├── lib/
+│   ├── ai/                  # Groq provider, prompts, rate-limiting
+│   ├── db/                  # Mongoose connection, models, types
+│   ├── ledger/              # Posting service (append-only ledger, snapshots, debt/goal actions)
+│   ├── recurring/           # Recurring rule processing
+│   ├── storage/             # GridFS file storage (expense attachments)
+│   ├── utils/               # Calculations, currency, optimistic updates
+│   └── validations/         # Zod schemas
+└── store/                   # Zustand stores
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Key Architectural Decisions
 
-## Deploy on Vercel
+- **Ledger-first:** Financial state is computed at write time, not read time. See [ADR 0001](docs/adr/0001-ledger-first-architecture.md).
+- **Append-only ledger:** Edits and deletions append correcting entries; original records are never mutated.
+- **Monthly snapshots:** Dashboard reads `MonthlySnapshot` documents for the requested period instead of recalculating from all transactions.
+- **Privacy-first:** No bank account linking. All data is manual entry.
+- **Zero cost:** Runs entirely on free tiers (Vercel, MongoDB Atlas M0, Groq free tier).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Documentation
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Project Context](PROJECT_CONTEXT.md) — detailed architecture, models, and conventions
+- [GEMINI.md](GEMINI.md) — project snapshot and remake checklist
+- [ADR 0001: Ledger-First Architecture](docs/adr/0001-ledger-first-architecture.md)
+- [Accessibility Audit](docs/accessibility-audit.md)
