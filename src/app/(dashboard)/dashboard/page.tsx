@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CategoryBreakdownChart, MonthlyTrendChart } from "@/components/dashboard/DashboardCharts";
 import { BudgetStatus } from "@/components/dashboard/BudgetStatus";
 import { AddIncomeDialog } from "@/components/dashboard/AddIncomeDialog";
+import { MonthCalendar } from "@/components/dashboard/MonthCalendar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils/currency";
 
@@ -39,6 +40,7 @@ function DashboardPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [trend, setTrend] = useState<TrendPoint[]>([]);
+  const [monthlyData, setMonthlyData] = useState<Record<string, { income: number; expenses: number; net: number }>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,7 +62,7 @@ function DashboardPage() {
       try {
         const [summaryResponse, trendResponse] = await Promise.all([
           fetch(`/api/dashboard?month=${selectedMonth}`),
-          fetch(`/api/dashboard/trend?months=6`),
+          fetch(`/api/dashboard/trend?months=18`),
         ]);
 
         if (!summaryResponse.ok || !trendResponse.ok) {
@@ -71,11 +73,26 @@ function DashboardPage() {
         const trendData = await trendResponse.json();
 
         setSummary(summaryData);
-        setTrend(trendData);
+
+        const mappedTrend = Array.isArray(trendData) ? trendData : [];
+        setTrend(mappedTrend);
+
+        const dataMap: Record<string, { income: number; expenses: number; net: number }> = {};
+        for (const point of mappedTrend) {
+          if (point && point.month) {
+            dataMap[point.month] = {
+              income: point.totalIncome ?? 0,
+              expenses: point.totalExpenses ?? 0,
+              net: point.netBalance ?? 0,
+            };
+          }
+        }
+        setMonthlyData(dataMap);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load dashboard data.");
         setSummary(null);
         setTrend([]);
+        setMonthlyData({});
       } finally {
         setLoading(false);
       }
@@ -231,6 +248,14 @@ function DashboardPage() {
       </div>
 
       {selectedMonth ? <BudgetStatus month={selectedMonth} /> : null}
+
+      <div className="mt-8">
+        <MonthCalendar
+          selectedMonth={selectedMonth}
+          onSelectMonth={setSelectedMonth}
+          monthlyData={monthlyData}
+        />
+      </div>
     </section>
   );
 }
