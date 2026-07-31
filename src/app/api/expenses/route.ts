@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db/mongoose";
 import { Expense } from "@/lib/db/models/Expense";
-import { postLedgerEntry } from "@/lib/ledger/postEntry";
+import { createExpenseEntry } from "@/lib/ledger/expenseActions";
 import { expenseSchema } from "@/lib/validations/expense.schema";
 import { ZodError } from "zod";
 
@@ -46,37 +46,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validatedData = expenseSchema.parse(body);
 
-    await connectDB();
-
-    const date = validatedData.date ?? new Date();
-    const expense = await Expense.create({
-      userId: session.user.id,
-      date,
-      category: validatedData.category,
-      description: validatedData.description,
-      amount: validatedData.amount,
-      notes: validatedData.notes,
-      title: validatedData.description,
-      type: "variable",
-      isRecurring: false,
-      month: date.getMonth() + 1,
-      year: date.getFullYear(),
-      tags: [],
-      note: validatedData.notes,
-    });
-
-    try {
-      await postLedgerEntry(new mongoose.Types.ObjectId(session.user.id), {
-        type: "expense",
-        amountOut: validatedData.amount,
-        date,
-        category: validatedData.category,
-        note: validatedData.notes ?? validatedData.description,
-      });
-    } catch (ledgerError) {
-      await Expense.deleteOne({ _id: expense._id });
-      throw ledgerError;
-    }
+    const expense = await createExpenseEntry(
+      new mongoose.Types.ObjectId(session.user.id),
+      validatedData
+    );
 
     return NextResponse.json({ expense }, { status: 201 });
   } catch (error) {

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db/mongoose";
 import { Income } from "@/lib/db/models/Income";
-import { postLedgerEntry } from "@/lib/ledger/postEntry";
+import { createIncomeEntry } from "@/lib/ledger/incomeActions";
 import { incomeSchema } from "@/lib/validations/income.schema";
 import { ZodError } from "zod";
 
@@ -46,26 +46,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validatedData = incomeSchema.parse(body);
 
-    await connectDB();
-
-    const income = await Income.create({
-      ...validatedData,
-      userId: session.user.id,
-      date: validatedData.date ?? new Date(),
-    });
-
-    try {
-      await postLedgerEntry(new mongoose.Types.ObjectId(session.user.id), {
-        type: "income",
-        amountIn: validatedData.amount,
-        date: income.date,
-        note: validatedData.notes,
-        category: validatedData.source,
-      });
-    } catch (ledgerError) {
-      await Income.deleteOne({ _id: income._id });
-      throw ledgerError;
-    }
+    const income = await createIncomeEntry(
+      new mongoose.Types.ObjectId(session.user.id),
+      validatedData
+    );
 
     return NextResponse.json({ income }, { status: 201 });
   } catch (error) {
