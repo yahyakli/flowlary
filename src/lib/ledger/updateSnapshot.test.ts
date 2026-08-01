@@ -324,6 +324,66 @@ beforeEach(() => {
     expect(result.totalExpenses).toBe(425);
   });
 
+  it('should ignore goal contributions when computing monthly totals', async () => {
+    const dateInMonth = new Date('2024-01-15');
+    const mockEntries = [
+      {
+        userId: userId.toString(),
+        date: new Date('2024-01-05'),
+        type: 'income' as const,
+        amountIn: 1000,
+        amountOut: 0,
+        category: undefined,
+      },
+      {
+        userId: userId.toString(),
+        date: new Date('2024-01-10'),
+        type: 'expense' as const,
+        amountIn: 0,
+        amountOut: 200,
+        category: 'Food',
+      },
+      {
+        userId: userId.toString(),
+        date: new Date('2024-01-20'),
+        type: 'goal_contribution' as const,
+        amountIn: 0,
+        amountOut: 150,
+        category: undefined,
+      },
+    ];
+
+    vi.spyOn(LedgerEntry, 'find').mockReturnValue({
+      lean: vi.fn().mockReturnValue({
+        exec: vi.fn().mockResolvedValue(mockEntries),
+      }),
+    } as any);
+
+    const findOneAndUpdateSpy = vi.spyOn(MonthlySnapshot, 'findOneAndUpdate').mockImplementation((query: any, update: any) => ({
+      exec: vi.fn().mockResolvedValue({
+        userId,
+        month: '2024-01',
+        ...update,
+        updatedAt: expect.any(Date),
+      }),
+    }) as any);
+
+    const result = await updateMonthlySnapshot(userId, dateInMonth);
+
+    expect(findOneAndUpdateSpy).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        totalIncome: 1000,
+        totalExpenses: 200,
+        netBalance: 800,
+        expenseByCategory: { Food: 200 },
+      }),
+      expect.any(Object)
+    );
+    expect(result.totalExpenses).toBe(200);
+    expect(result.netBalance).toBe(800);
+  });
+
   it('should use the provided session for database operations', async () => {
     const dateInMonth = new Date('2024-01-15');
     const mockEntries: any[] = [];

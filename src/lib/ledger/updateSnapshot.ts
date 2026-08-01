@@ -48,6 +48,10 @@ export async function updateMonthlySnapshot(
   const expenseByCategory: Record<string, number> = {};
 
   for (const entry of entries) {
+    if (entry.type === 'goal_contribution') {
+      continue;
+    }
+
     totalIncome += entry.amountIn;
     totalExpenses += entry.amountOut;
 
